@@ -132,12 +132,17 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          matchUrls = imagepattern.search(htmlContentList[0])
          imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9]?\/.+\.[a-zA-Z]+)\"''')
          matchUrlsAlter = imagepatternAlter.search(htmlContentList[0])
-         if matchUrls:
+         if matchUrls:                     # This block still has some strange issues..... 
             imageUrl = matchUrls.group(1)
             imageForm = matchUrls.group(2)
          else:
             imageUrl = matchUrlsAlter.group(1)
-            imageForm = matchUrlsAlter.group(2)
+            try:
+               imageForm = matchUrlsAlter.group(2)
+            except Exception as error:
+               imageForm = 'jpg'    # This is a quick fix. Strange
+            else: 
+               pass
          os.makedirs(path, exist_ok=True)
          previewimage = mangasession.get(imageUrl, stream=True)
          handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
@@ -155,6 +160,8 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          break
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
+      with open((path+filename+'.htmlcontent'), 'w') as fo:
+         fo.write(htmlContentList[0])
    if errorMessage[url]:    
       q.put(errorMessage)
    else:
