@@ -130,8 +130,14 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                                            urls=[url])
          imagepattern = re.compile(r'''src=\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+;fileindex=[a-zA-Z0-9]+;xres=[a-zA-Z0-9]+\/.+\.([a-zA-Z]+))" style=''')
          matchUrls = imagepattern.search(htmlContentList[0])
-         imageUrl = matchUrls.group(1)
-         imageForm = matchUrls.group(2)                  
+         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9]?\/.+\.[a-zA-Z]+)\"''')
+         matchUrlsAlter = imagepatternAlter.search(htmlContentList[0])
+         if matchUrls:
+            imageUrl = matchUrls.group(1)
+            imageForm = matchUrls.group(2)
+         else:
+            imageUrl = matchUrlsAlter.group(1)
+            imageForm = matchUrlsAlter.group(2)
          os.makedirs(path, exist_ok=True)
          previewimage = mangasession.get(imageUrl, stream=True)
          handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')

@@ -32,9 +32,9 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
          urlsDict['exhUrlList'].append(url)
       else:
          urlsDict['ehUrlList'].append(url)
-   print(urlsDict)
+#    print(urlsDict)
    for ulCategory in urlsDict:
-      print ('---------1--------------')
+      # print ('---------1--------------')
       if ulCategory == 'exhUrlList':
          exh = True
       else:
@@ -52,10 +52,10 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
             urlSeparateList.append(subUrlList)
             subUrlList = []
       apiStop = dloptgenerate.Sleep('2-3')
-      print (urlSeparateList)
+      # print (urlSeparateList)
       for usl in urlSeparateList:
-         print ('-------------------2----------------')
-         print (usl)
+      #    print ('-------------------2----------------')
+      #    print (usl)
          tempList.extend(download.accesstoehentai(method='post', 
                                                   mangasession=mangasession,
                                                   stop=apiStop,
@@ -66,10 +66,13 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
       print (tempDict)
       for url in tempDict:
-         print ('----------------3---------------')
-         if config.useEntitle == False and tempDict[url]['jptitle']:
-            title = tempDict[url]['jptitle'][0]
+      #    print ('----------------3---------------') 
+         if config.useEntitle == False:
+            if tempDict[url]['jptitle']:
+               
+               title = tempDict[url]['jptitle'][0]
          elif tempDict[url]['jptitle'] == None or config.useEntitle == True:
+            print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
          dlpath = path + '{0}/'.format(title) 
          outDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
@@ -79,12 +82,14 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
                                                         title=title)
                         }
                         )
-         outDict[url].update({'cookiesError': errorMessage})
-         print (outDict)
+         
+         
       urlSeparateList = []
       tempDict = {}
       tempList = []
-            
+   outDict.update(errorMessage)
+#    print (outDict)
+   return outDict
 
      
 
@@ -152,6 +157,7 @@ def Spidercontrolasfunc(dloptDict, logger):
    for url in dloptDict['dlopt'].urls:
       if url.find('exhentai') != -1:
          hasEXH = True
+         break
    mangasessionDict = sessiongenfunc(dloptDict=dloptDict, logger=logger, hasEXH=hasEXH)
    mangasession = mangasessionDict['mangasession']
    print (mangasessionDict)
@@ -160,12 +166,15 @@ def Spidercontrolasfunc(dloptDict, logger):
       for url in urls:
          if url.find('exhentai') != -1:
            urls.remove(url)
-   mangaspider(urls=urls, 
-               mangasession=mangasession,
-               path=dloptDict['dlopt'].path,
-               errorMessage=dloptDict['errorMessage'],
-               logger=logger
-              )
+   outDict = mangaspider(urls=urls, 
+                         mangasession=mangasession,
+                         path=dloptDict['dlopt'].path,
+                         errorMessage=dloptDict['errorMessage'],
+                         logger=logger
+                        )
+   return outDict
+
+
 
 
 
