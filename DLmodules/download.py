@@ -155,13 +155,14 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          errorMessage[url].update({err: str(error)})
          err += 1
          time.sleep(0.5)
+         with open('{0}{1}{2}{3}'.format(path, filename, err, '.htmlcontent'), 'w') as fo:
+            fo.write(htmlContentList[0])
       else:
          err=0
          break
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
-      with open((path+filename+'.htmlcontent'), 'w') as fo:
-         fo.write(htmlContentList[0])
+
    if errorMessage[url]:    
       q.put(errorMessage)
    else:
