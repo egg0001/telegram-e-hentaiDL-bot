@@ -37,5 +37,7 @@ def ehlogin(dloptDict, mangasession, logger):
       if isEXH == False:
          dloptDict['errorMessage'].update({'loginError': usermessage.exhError})
          logger.info("This username could not use exhentai")
+      else:
+         ehloginDict['canEXH'] = True
       ehloginDict.update({'isEXH': isEXH, 'mangasession': mangasession, 'errorMessage': dloptDict['errorMessage']})
    return ehloginDict
