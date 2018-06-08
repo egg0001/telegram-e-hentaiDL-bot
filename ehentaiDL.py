@@ -84,22 +84,17 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
                         )
          
       download.userfiledetect(path=path)
-      with open("{0}.mangalog".format(path), 'r+') as fo:
+      with open("{0}.mangalog".format(path), 'r') as fo:
          mangaInfoDict = json.load(fo)
          mangaInfoDict.update(tempDict)
+      with open("{0}.mangalog".format(path), 'w') as fo:
          json.dump(mangaInfoDict, fo)
-
       urlSeparateList = [] 
       tempDict = {}   #Delete all useless values 
       tempList = []
    outDict.update(errorMessage)
 #    print (outDict)
    return outDict
-
-     
-
-   
-
 
 
 def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate whether the cookies could access exh
@@ -126,7 +121,8 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
 
 def sessiongenfunc(dloptDict, logger, hasEXH):
    mangasession = requests.Session()
-   dlopt = dloptDict['dlopt']
+#    dlopt = dloptDict['dlopt']
+   
    usefulCookiesDict = {'exh': False}
    if config.headers:
       mangasession.headers.update(random.choice(config.headers))
@@ -139,19 +135,32 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
       mangasession.proxies = proxies
    else:
       pass
-   if dlopt.userCookies and hasEXH == True:
+#    if dloptDict['dlopt'].changeCookies == True:
+   if dloptDict['dlopt'].userCookies and hasEXH == True:
       usefulCookiesDict = exhcookiestest(mangasessionTest=mangasession, 
-                                         cookies=dlopt.userCookies, 
+                                         cookies=dloptDict['dlopt'].userCookies, 
                                          forceCookiesEH=config.forceCookiesEH
                                         ) 
-   elif dlopt.userCookies and config.forceCookiesEH == True:
-      requests.utils.add_dict_to_cookiejar(mangasession.cookies, dlopt.userCookies)
-#    print (usefulCookiesDict)
+   elif dloptDict['dlopt'].userCookies and config.forceCookiesEH == True:
+      requests.utils.add_dict_to_cookiejar(mangasession.cookies, dloptDict['dlopt'].userCookies)
+#        print (usefulCookiesDict)
    if usefulCookiesDict['exh'] == True:
       eh = False
    else:
       eh = True
    mangasessionDict = {'mangasession': mangasession, 'eh': eh}
+#    else:
+#       requests.cookies.cookiejar_from_dict(dloptDict['dlopt'].userCookies)
+#       if dloptDict['dlopt'].canEXH == True:
+#          r = mangasession.get('https://exhentai.org/')
+#          eh = False
+#          print (r.text)
+#       else:
+#          mangasession.get('https://e-hentai.org/')
+#          eh = True
+#          print (r.text)
+#       mangasessionDict = {'mangasession': mangasession, 'eh': eh}
+#       time.sleep(2) # Prevent the anti-spider function
    return mangasessionDict
 
 
@@ -171,12 +180,25 @@ def Spidercontrolasfunc(dloptDict, logger):
       for url in urls:
          if url.find('exhentai') != -1:
            urls.remove(url)
+
+
+
    outDict = mangaspider(urls=urls, 
                          mangasession=mangasession,
                          path=dloptDict['dlopt'].path,
                          errorMessage=dloptDict['errorMessage'],
                          logger=logger
                         )
+   internalCookies = requests.utils.dict_from_cookiejar(mangasession.cookies)
+   with open('./DLmodules/.cookiesinfo', 'r') as fo:
+      cookiesInfoDict = json.load(fo)
+      cookiesInfoDict['internalCookies'] = internalCookies
+      if mangasessionDict['eh'] == True:
+         cookiesInfoDict['canEXH'] = False
+      else:
+         cookiesInfoDict['canEXH'] = True
+   with open('./DLmodules/.cookiesinfo', 'w') as fo:
+      json.dump(cookiesInfoDict, fo)
    return outDict
 
 

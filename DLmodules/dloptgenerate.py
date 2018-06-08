@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from . import config
+from . import download
 import json
 from ast import literal_eval
 from . import usermessage
@@ -8,13 +9,16 @@ import time
 import random
 
 
+
 class dloptgene():
-   def __init__(self, urls, userCookies, path, username=None, password=None):
+   def __init__(self, urls, userCookies, path, changeCookies, canEXH=False, username=None, password=None):
       self.urls = urls # list
       self.userCookies = userCookies # dict
-      self.path = path 
-      self.username = username
-      self.password = password
+      self.path = path # str
+      self.username = username # str, test propose
+      self.password = password # str, test propose
+      self.changeCookies = changeCookies # Bool
+      self.canEXH = canEXH # Bool, default is false
 
  
 
@@ -43,10 +47,29 @@ def dloptgenerate(urls, logger):
    if isinstance(userCookies, dict) == False:
       userCookies = {}
       errorMessage.update({'configError': [usermessage.userCookiesFormError]})
-      logger.error('userCookies form error') 
+      logger.error('userCookies form error')
+   download.cookiesfiledetect()
+   with open('./DLmodules/.cookiesinfo', 'r') as fo:
+      cookiesinfoDict = json.load(fo)
+   if cookiesinfoDict['userCookies'] == config.userCookies:
+      print ('Use internal cookies.')
+      userCookies = cookiesinfoDict['internalCookies']
+      canEXH = cookiesinfoDict['canEXH']
+      changeCookies = False
+   else:
+      print ('Cookies changed')
+      userCookies = userCookies
+      changeCookies = True
+      canEXH = False
+      cookiesinfoDict['userCookies'] = config.userCookies
+      cookiesinfoDict['canEXH'] = False
+      with open('./DLmodules/.cookiesinfo', 'w') as fo:
+         json.dump(cookiesinfoDict, fo)
    dlopt = dloptgene(urls=urls,
                      userCookies=userCookies,
-                     path=config.path
+                     path=config.path,
+                     changeCookies=changeCookies,
+                     canEXH=canEXH
                     )
    print (dlopt.urls)
    dloptDict.update({'dlopt': dlopt, 'errorMessage': errorMessage})

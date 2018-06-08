@@ -45,6 +45,46 @@ def userfiledetect(path):
          else:
             pass
 
+def cookiesfiledetect():
+   if os.path.isfile('./DLmodules/.cookiesinfo') == False:
+      cookiesInfoDict = {'internalCookies': {},
+                         'canEXH': False,
+                         'userCookies': {},
+                        }
+      with open('./DLmodules/.cookiesinfo', 'w') as fo:
+         json.dump(cookiesInfoDict, fo)
+   else:
+      with open('./DLmodules/.cookiesinfo', 'r+') as fo:
+         try:
+            cookiesInfoDict = json.load(fo)
+         except json.decoder.JSONDecodeError:
+            cookiesInfoDict = {'internalCookies': {},
+                               'canEXH': False,
+                               'userCookies': {},
+                              }
+            json.dump(cookiesInfoDict, fo)
+         else:
+            if cookiesInfoDict.get('internalCookies') and cookiesInfoDict.get('canEXH') and cookiesInfoDict.get('userCookies'):
+               pass
+            else:
+               cookiesInfoDict = {'internalCookies': {},
+                                  'canEXH': False,
+                                  'userCookies': {},
+                                 }
+               json.dump(cookiesInfoDict, fo)           
+
+      #       broken_file = './DLmodules/.cookiesinfo'
+      #       bkm = '.cookiesinfo.broken.TIME'
+      #       backup_file_name = bkm.replace('TIME', str(time.asctime(time.localtime())))
+      #       backup_file_name = backup_file_name.replace(":", ".")
+      #       backup_file = './DLmodules/{0}'.format(backup_file_name)
+      #       os.rename(broken_file, backup_file)
+      #    else:
+      #       if cookiesInfoDict.get('internalCookies') and cookiesInfoDict.get('canEXH') and cookiesInfoDict.get('userCookies'):
+      #          pass
+      #       else:
+               
+
 
 def mangadownloadctl(mangasession, url, path, logger, title):
    stop = dloptgenerate.Sleep(config.rest)
@@ -58,6 +98,7 @@ def mangadownloadctl(mangasession, url, path, logger, title):
                                      urls=[url]
                                     )
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+
    threadCounter = 0
    q = Queue()
    while pageContentDict['nextPage']:
