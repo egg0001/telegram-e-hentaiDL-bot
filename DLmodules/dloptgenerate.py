@@ -9,12 +9,14 @@ import random
 
 
 class dloptgene():
-   def __init__(self, urls, userCookies, path):
+   def __init__(self, urls, userCookies, path, username=None, password=None):
       self.urls = urls # list
       self.userCookies = userCookies # dict
-      self.path = path
+      self.path = path 
+      self.username = username
+      self.password = password
 
-
+ 
 
 class Sleep():   #Just a sleep function
    minsleep = 0
