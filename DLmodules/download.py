@@ -119,7 +119,7 @@ def mangadownloadctl(mangasession, url, path, logger, title):
    return resultDict
 
 def mangadownload(url, mangasession, filename, path, logger, q):
-#    print ('Start download page {0}'.format(filename))
+   print ('Start download page {0}'.format(filename))
    errorMessage = {url: {}}
    err = 0
    for err in range(config.timeoutRetry):
@@ -141,6 +141,9 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                imageForm = matchUrlsAlter.group(2)
             except Exception as error:
                imageForm = 'jpg'    # This is a quick fix. Strange
+               logger.exception('{0} has encountered a rex issue'.format(url))
+               with open('{0}{1}{2}{3}{4}'.format(path, filename, 'rexE', err, '.htmlcontent'), 'w') as fo:
+                  fo.write(htmlContentList[0])
             else: 
                pass
          os.makedirs(path, exist_ok=True)

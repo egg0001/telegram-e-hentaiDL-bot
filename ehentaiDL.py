@@ -26,7 +26,7 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
    userInfoDict = {} # Dump information to file
    imageObjDict = {} # Get the image objects 
    queueImageObj = Queue() # store the image memory objects
-   download.userfiledetect(path=path)
+   
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhUrlList'].append(url)
@@ -83,9 +83,14 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
                         }
                         )
          
-         
-      urlSeparateList = []
-      tempDict = {}
+      download.userfiledetect(path=path)
+      with open("{0}.mangalog".format(path), 'r+') as fo:
+         mangaInfoDict = json.load(fo)
+         mangaInfoDict.update(tempDict)
+         json.dump(mangaInfoDict, fo)
+
+      urlSeparateList = [] 
+      tempDict = {}   #Delete all useless values 
       tempList = []
    outDict.update(errorMessage)
 #    print (outDict)
@@ -141,7 +146,7 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
                                         ) 
    elif dlopt.userCookies and config.forceCookiesEH == True:
       requests.utils.add_dict_to_cookiejar(mangasession.cookies, dlopt.userCookies)
-   print (usefulCookiesDict)
+#    print (usefulCookiesDict)
    if usefulCookiesDict['exh'] == True:
       eh = False
    else:

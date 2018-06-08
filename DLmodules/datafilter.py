@@ -7,7 +7,7 @@ def exhtest(htmlContent):
    usefulCookies = False
    if bool(re.search(pattern, htmlContent)):
       usefulCookies = True
-   print (usefulCookies)
+#    print (usefulCookies)
    return usefulCookies
 
 
@@ -104,11 +104,11 @@ def mangadlfilter(htmlContent):
    try:
       pageContentDict['nextPage'] = nextPage.group(1)
    except AttributeError:
-      print ("No next page.")
+      # print ("No next page.")
       pageContentDict['nextPage'] = -1
    for mP in mangaPages:
       pageContentDict['contentPages'].append((mP.group(1), mP.group()))
-   print (pageContentDict)
+#    print (pageContentDict)
    return pageContentDict
 
 
