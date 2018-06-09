@@ -40,7 +40,8 @@ def start(bot, update, user_data, chat_data):
                   }
    channelmessage(bot=bot, 
                   messageDict=messageDict, 
-                  chat_id=update.message.chat_id
+                  chat_id=update.message.chat_id,
+                  logger=logger
                  )
    if outputDict["outputChat_data"]['state'] != 'END':
       state = STATE
@@ -65,7 +66,8 @@ def state(bot, update, user_data, chat_data):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=update.message.chat_id
+                     chat_id=update.message.chat_id,
+                     logger=logger
                     )
    else:
       state = ConversationHandler.END
@@ -74,7 +76,8 @@ def state(bot, update, user_data, chat_data):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=update.message.chat_id
+                     chat_id=update.message.chat_id,
+                     logger=logger
                     )
       Ttime = time.asctime(time.localtime()) 
       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
@@ -97,7 +100,8 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=chat_id
+                     chat_id=chat_id,
+                     logger=logger
                     )
    if outDict.get('gidError'): 
       gidErrorList = []
@@ -108,7 +112,8 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=chat_id
+                     chat_id=chat_id,
+                     logger=logger
                     )
    for result in outDict['resultDict']:
       if outDict['resultDict'][result]['previewImageDict']: 
@@ -118,23 +123,31 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                           }
             channelmessage(bot=bot, 
                            messageDict=messageDict, 
-                           chat_id=chat_id
+                           chat_id=chat_id,
+                           logger=logger
                           )        
             messageDict = {"messageContent": [image],
                            'messageCate': 'photo',
-                          }      
+                          }
+            channelmessage(bot=bot, 
+                           messageDict=messageDict, 
+                           chat_id=chat_id,
+                           logger=logger
+                          )       
       if outDict['resultDict'][result]['dlErrorDict']:
          for error in outDict['resultDict'][result]['dlErrorDict']:
             messageDict = {"messageContent": [error, outDict['resultDict'][result]['dlErrorDict'][error]],
                            'messageCate': 'message',
                           }
-            messageDict = {"messageContent": [image],
-                           'messageCate': 'photo',
-                          }             
+            channelmessage(bot=bot, 
+                           messageDict=messageDict, 
+                           chat_id=chat_id,
+                           logger=logger
+                          )             
             
 
 
-def channelmessage(bot, messageDict, chat_id): 
+def channelmessage(bot, messageDict, chat_id, logger): 
    messageContent = messageDict["messageContent"]
    for mC in messageContent:
       err = 0
@@ -148,12 +161,13 @@ def channelmessage(bot, messageDict, chat_id):
          except:
             err += 1
             time.sleep(1)
+            logger.warning('Message timeout {0}'.format(err))
          else:
+            logger.warning('Message retry limitation reached')
             time.sleep(0.5)
             err = 0
             break
       else:
-         print ("network issue")
          err = 0
 
 def cancel(bot, update, user_data, chat_data):  
