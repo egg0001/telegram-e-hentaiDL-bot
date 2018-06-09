@@ -90,7 +90,7 @@ def genmangainfoapi(resultJsonDict, exh):
                 #        "imageurlSmall": imageurlSmall,
                 #        "imageForm": imageForm
                       }})
-   print (mangaInfo)
+#    print (mangaInfo)
    return mangaInfo
 
 

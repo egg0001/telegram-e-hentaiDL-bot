@@ -71,13 +71,12 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
-      print (tempDict)
+      logger.info("Retrived {0} url(s)' information".format(len(tempDict)))
       for url in tempDict:
       #    print ('----------------3---------------') 
-         if config.useEntitle == False:
-            if tempDict[url]['jptitle']:
-               
-               title = tempDict[url]['jptitle'][0]
+         if config.useEntitle == False and tempDict[url]['jptitle']:
+            title = tempDict[url]['jptitle'][0]
+            
          elif tempDict[url]['jptitle'] == None or config.useEntitle == True:
             print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
@@ -207,7 +206,7 @@ def Spidercontrolasfunc(dloptDict, logger):
          cookiesInfoDict['canEXH'] = False
       else:
          cookiesInfoDict['canEXH'] = True
-   with open('./DLmodules/.cookiesinfo', 'w') as fo:
+   with open('./DLmodules/.cookiesinfo', 'w+') as fo:
       json.dump(cookiesInfoDict, fo)
    return outDict
 

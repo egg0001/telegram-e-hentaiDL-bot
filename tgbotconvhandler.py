@@ -21,7 +21,7 @@ def verify(user_data, chat_data, logger, inputStr=None):
       logger.info('User {0} identity denied'.format(user_data["actualusername"]))
       outputTextList.append(usermessage.denyMessage)
       chat_data.update({'state': 'END'})
-   outputDict = {"outputTextList": [],
+   outputDict = {"outputTextList": outputTextList,
                  "outputChat_data": chat_data, 
                  "outputUser_data": user_data
                 }
@@ -30,7 +30,7 @@ def verify(user_data, chat_data, logger, inputStr=None):
 def urlanalysis(user_data, chat_data, logger, inputStr=None):
    outputTextList = []
    urlResultList = []
-   urlPattern = re.compile(r'''https://.+\.org/g/\w+/\w+/''')
+   urlPattern = re.compile(r'''https://[exhentai\-]+\.org/g/\w+/\w+/''')
    urlResult = urlPattern.finditer(inputStr)
    for uR in urlResult:
       urlResultList.append(uR.group())
@@ -42,7 +42,7 @@ def urlanalysis(user_data, chat_data, logger, inputStr=None):
       chat_data.update({'state': 'urlanalysis'})
       logger.info('Could not find any urls, the inputmessage is ({0})'.format(inputStr))
       outputTextList.append(usermessage.urlNotFound)
-   outputDict = {"outputTextList": [],
+   outputDict = {"outputTextList": outputTextList,
                  "outputChat_data": chat_data, 
                  "outputUser_data": user_data,
                  "urlResultList": urlResultList
@@ -52,10 +52,10 @@ def urlanalysis(user_data, chat_data, logger, inputStr=None):
 def ehdownloader(urlResultList, logger):
    tLock = Lock()
    tLock.acquire()
-   logger('Download function initiated.')
+   logger.info('Download function initiated.')
    dloptDict = dloptgenerate.dloptgenerate(urls=urlResultList, logger=logger)
    outDict = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger)
-   logger("Download completed.")
+   logger.info("Download completed.")
    tLock.release()
    return outDict
 

@@ -50,7 +50,15 @@ def dloptgenerate(urls, logger):
       logger.error('userCookies form error')
    download.cookiesfiledetect()
    with open('./DLmodules/.cookiesinfo', 'r') as fo:
-      cookiesinfoDict = json.load(fo)
+      try:
+         cookiesinfoDict = json.load(fo)
+      except:
+         logger.warning('Internal cookies file is broken, delete and replace.')
+         internalCookiesFile = False
+      else:
+         internalCookiesFile = True
+   if internalCookiesFile == False:
+      cookiesinfoDict = download.cookiesfiledetect(foresDelete=True)
    if cookiesinfoDict['userCookies'] == config.userCookies:
       print ('Use internal cookies.')
       userCookies = cookiesinfoDict['internalCookies']

@@ -127,7 +127,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                            logger=logger
                           )        
             messageDict = {"messageContent": [image],
-                           'messageCate': 'photo',
+                           'messageCate': 'message',
                           }
             channelmessage(bot=bot, 
                            messageDict=messageDict, 
@@ -136,7 +136,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                           )       
       if outDict['resultDict'][result]['dlErrorDict']:
          for error in outDict['resultDict'][result]['dlErrorDict']:
-            messageDict = {"messageContent": [error, outDict['resultDict'][result]['dlErrorDict'][error]],
+            messageDict = {"messageContent": [error, '{0}: {1}'.format(result, outDict['resultDict'][result]['dlErrorDict'][error])],
                            'messageCate': 'message',
                           }
             channelmessage(bot=bot, 
@@ -147,7 +147,9 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
             
 
 
-def channelmessage(bot, messageDict, chat_id, logger): 
+def channelmessage(bot, messageDict, chat_id, logger):
+#    logger.info("Began to send sth...")
+#    print (messageDict)
    messageContent = messageDict["messageContent"]
    for mC in messageContent:
       err = 0
@@ -163,11 +165,12 @@ def channelmessage(bot, messageDict, chat_id, logger):
             time.sleep(1)
             logger.warning('Message timeout {0}'.format(err))
          else:
-            logger.warning('Message retry limitation reached')
+
             time.sleep(0.5)
             err = 0
             break
       else:
+         logger.warning('Message retry limitation reached')
          err = 0
 
 def cancel(bot, update, user_data, chat_data):  

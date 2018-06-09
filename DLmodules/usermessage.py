@@ -31,5 +31,6 @@ ehloginError = 'username or password error, please check.'
 
 exhError = 'This username could not access exhentai.'
 
-#---------------------------------------------------------
+#------------------download session------------------------
 
+galleryError = 'Gallery does not contain any page, maybe deleted.'

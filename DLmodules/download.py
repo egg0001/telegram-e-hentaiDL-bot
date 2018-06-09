@@ -11,6 +11,7 @@ import random
 from . import config
 from . import dloptgenerate
 from . import datafilter
+from . import usermessage
 from threading import Thread
 from queue import Queue
 from io import BytesIO
@@ -45,7 +46,9 @@ def userfiledetect(path):
          else:
             pass
 
-def cookiesfiledetect():
+def cookiesfiledetect(foresDelete=False):
+   if foresDelete == True:
+      os.remove('./DLmodules/.cookiesinfo')
    if os.path.isfile('./DLmodules/.cookiesinfo') == False:
       cookiesInfoDict = {'internalCookies': {},
                          'canEXH': False,
@@ -53,25 +56,33 @@ def cookiesfiledetect():
                         }
       with open('./DLmodules/.cookiesinfo', 'w') as fo:
          json.dump(cookiesInfoDict, fo)
+   if foresDelete == True:
+      cookiesInfoDict = {'internalCookies': {},
+                         'canEXH': False,
+                         'userCookies': {},
+                        }
    else:
-      with open('./DLmodules/.cookiesinfo', 'r+') as fo:
-         try:
-            cookiesInfoDict = json.load(fo)
-         except json.decoder.JSONDecodeError:
-            cookiesInfoDict = {'internalCookies': {},
-                               'canEXH': False,
-                               'userCookies': {},
-                              }
-            json.dump(cookiesInfoDict, fo)
-         else:
-            if cookiesInfoDict.get('internalCookies') and cookiesInfoDict.get('canEXH') and cookiesInfoDict.get('userCookies'):
-               pass
-            else:
-               cookiesInfoDict = {'internalCookies': {},
-                                  'canEXH': False,
-                                  'userCookies': {},
-                                 }
-               json.dump(cookiesInfoDict, fo)           
+      cookiesInfoDict = {}  
+   return cookiesInfoDict
+#    else:
+#       with open('./DLmodules/.cookiesinfo', 'r') as fo:
+#          try:
+#             cookiesInfoDict = json.load(fo)
+#          except json.decoder.JSONDecodeError:
+#             cookiesInfoDict = {'internalCookies': {},
+#                                'canEXH': False,
+#                                'userCookies': {},
+#                               }
+#             json.dump(cookiesInfoDict, fo)
+#          else:
+#             if cookiesInfoDict.get('internalCookies') and cookiesInfoDict.get('canEXH') and cookiesInfoDict.get('userCookies'):
+#                pass
+#             else:
+#                cookiesInfoDict = {'internalCookies': {},
+#                                   'canEXH': False,
+#                                   'userCookies': {},
+#                                  }
+#                json.dump(cookiesInfoDict, fo)           
 
       #       broken_file = './DLmodules/.cookiesinfo'
       #       bkm = '.cookiesinfo.broken.TIME'
@@ -97,62 +108,67 @@ def mangadownloadctl(mangasession, url, path, logger, title):
                                      stop=stop, 
                                      urls=[url]
                                     )
+#    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
 
    threadCounter = 0
    q = Queue()
-   while pageContentDict['nextPage']:
-      for mP in pageContentDict['contentPages']:
-         t = Thread(target=mangadownload, 
-                    name=mP[0],
-                    kwargs={'url': mP[1],
-                            'mangasession': mangasession,
-                            'filename': mP[0],
-                            'path': path,
-                            'logger': logger,
-                            'q': q
-                            }
-                  )
-         threadCounter += 1
-         t.start()
-         if threadCounter >= config.dlThreadLimit:
-            t.join()
-            threadCounter = 0
-      t.join()
-      if pageContentDict['nextPage'] != -1:
-         htmlContentList = accesstoehentai(method='get', 
-                                           mangasession=mangasession, 
-                                           stop=stop, 
-                                           urls=[pageContentDict['nextPage']]
-                                          )
-         try:
-            pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
-         except Exception as error:
-            logger.exception('Raise a crucial exception during analysis {0}'.format(url))
-            resultDict['dlErrorDict'].update({'nextPageError': {url: str(error)}})
-            break
-      else:
-         pageContentDict['nextPage'] = ''
-   while not q.empty():
-      temp = q.get()
-      tempErrDict[url].update(temp)
-   if tempErrDict[url]:
-      resultDict['dlErrorDict'].update(tempErrDict[url])
-   filesList = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-   previewImage = filesList[0]
-   previewImageFormat = (previewImage.split('.'))[-1]
-   if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
-      previewImageFormat = 'jpeg'
-   try:
-      i = Image.open('{0}{1}'.format(path, previewImage))
-      bio = BytesIO()
-      bio.name = title
-      i.save(bio, format=previewImageFormat)
-      resultDict['previewImageDict'].update({title: bio,})
-   except Exception as error:
-      logger.exception('Raise {0} while opening preview image of {1}'.format(error, title))
-      resultDict['dlErrorDict'].update({'openFileError': {url: str(error)}})
-
+#    print (pageContentDict)
+   if pageContentDict.get('contentPages'):
+      while pageContentDict['nextPage']:
+         for mP in pageContentDict['contentPages']:
+            t = Thread(target=mangadownload, 
+                       name=mP[0],
+                       kwargs={'url': mP[1],
+                               'mangasession': mangasession,
+                               'filename': mP[0],
+                               'path': path,
+                               'logger': logger,
+                               'q': q
+                               }
+                     )
+            threadCounter += 1
+            t.start()
+            if threadCounter >= config.dlThreadLimit:
+               t.join()
+               threadCounter = 0
+         t.join()
+         if pageContentDict['nextPage'] != -1:
+            htmlContentList = accesstoehentai(method='get', 
+                                              mangasession=mangasession, 
+                                              stop=stop, 
+                                              urls=[pageContentDict['nextPage']]
+                                             )
+            try:
+               pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+            except Exception as error:
+               logger.exception('Raise a crucial exception during analysis {0}'.format(url))
+               resultDict['dlErrorDict'].update({'nextPageError': {url: str(error)}})
+               break
+         else:
+            pageContentDict['nextPage'] = ''
+      while not q.empty():
+         temp = q.get()
+         tempErrDict[url].update(temp)
+      if tempErrDict[url]:
+         resultDict['dlErrorDict'].update(tempErrDict[url])
+      filesList = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+      previewImage = filesList[0]
+      previewImageFormat = (previewImage.split('.'))[-1]
+      if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
+         previewImageFormat = 'jpeg'
+      try:
+         i = Image.open('{0}{1}'.format(path, previewImage))
+         bio = BytesIO()
+         bio.name = title
+         i.save(bio, format=previewImageFormat)
+         resultDict['previewImageDict'].update({title: bio,})
+      except Exception as error:
+         logger.exception('Raise {0} while opening preview image of {1}'.format(error, title))
+         resultDict['dlErrorDict'].update({'openFileError': {url: str(error)}})
+   else:
+      logger.warning('{0} does not contain any page, maybe deleted'.format(url))
+      resultDict['dlErrorDict'].update({'galleryError': usermessage.galleryError})
    if resultDict['dlErrorDict']:
       with open((path + 'errorLog'), 'w') as fo:
          json.dump(resultDict['dlErrorDict'], fo)
