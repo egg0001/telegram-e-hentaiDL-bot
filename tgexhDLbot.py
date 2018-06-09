@@ -138,7 +138,7 @@ def channelmessage(bot, messageDict, chat_id):
    messageContent = messageDict["messageContent"]
    for mC in messageContent:
       err = 0
-      for err in range(config.timeoutRetry):
+      for err in range(config.messageTimeOutRetry):
          try:
             if messageDict['messageCate'] == 'photo':
                mC.seek(0)

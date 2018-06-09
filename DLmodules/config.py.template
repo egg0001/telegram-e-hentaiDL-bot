@@ -5,6 +5,7 @@ token = ''
 telegramUsername = ''
 proxy = [] # Bot and downloader would all use
                                 #this variable 
+messageTimeOutRetry = 3
 
 #----------------Downloader session--------------------------
 
