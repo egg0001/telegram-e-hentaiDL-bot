@@ -23,11 +23,11 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
    resultDict = {} # Contain the download result
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
-   strList = [] # contain the message strs.
-   strDict = {} #For generate information to the user
-   userInfoDict = {} # Dump information to file
-   imageObjDict = {} # Get the image objects 
-   queueImageObj = Queue() # store the image memory objects
+#    strList = [] # contain the message strs.
+#    strDict = {} #For generate information to the user
+#    userInfoDict = {} # Dump information to file
+#    imageObjDict = {} # Get the image objects 
+#    queueImageObj = Queue() # store the image memory objects
    
    for url in urls:
       if url.find('exhentai') != -1:
@@ -78,7 +78,7 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
             title = tempDict[url]['jptitle'][0]
             
          elif tempDict[url]['jptitle'] == None or config.useEntitle == True:
-            print (tempDict[url]['entitle'])
+            # print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
          dlpath = path + '{0}/'.format(title) 
          resultDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
@@ -183,7 +183,7 @@ def Spidercontrolasfunc(dloptDict, logger):
          break
    mangasessionDict = sessiongenfunc(dloptDict=dloptDict, logger=logger, hasEXH=hasEXH)
    mangasession = mangasessionDict['mangasession']
-   print (mangasessionDict)
+#    print (mangasessionDict)
    if mangasessionDict['eh'] == True and hasEXH == True:
       errorMessage.update({'cookiesError': usermessage.usercookiesEXHError})
       for url in urls:

@@ -40,7 +40,7 @@ class Sleep():   #Just a sleep function
 
 
 def dloptgenerate(urls, logger):
-   print ('dlopt func')
+#    print ('dlopt func')
    userCookies = config.userCookies
    errorMessage = {}
    dloptDict = {}
@@ -60,7 +60,7 @@ def dloptgenerate(urls, logger):
    if internalCookiesFile == False:
       cookiesinfoDict = download.cookiesfiledetect(foresDelete=True)
    if cookiesinfoDict['userCookies'] == config.userCookies:
-      print ('Use internal cookies.')
+      # print ('Use internal cookies.')
       userCookies = cookiesinfoDict['internalCookies']
       canEXH = cookiesinfoDict['canEXH']
       changeCookies = False
@@ -79,7 +79,7 @@ def dloptgenerate(urls, logger):
                      changeCookies=changeCookies,
                      canEXH=canEXH
                     )
-   print (dlopt.urls)
+#    print (dlopt.urls)
    dloptDict.update({'dlopt': dlopt, 'errorMessage': errorMessage})
    return dloptDict
 

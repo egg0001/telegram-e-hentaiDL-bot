@@ -93,7 +93,7 @@ def state(bot, update, user_data, chat_data):
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
-   logger.info('Began to send download result.')
+   logger.info('Began to send download result(s).')
    if outDict.get('cookiesError'):
       messageDict = {"messageContent": [outDict['cookiesError']],
                      'messageCate': 'message',
@@ -144,7 +144,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                            chat_id=chat_id,
                            logger=logger
                           )             
-            
+   logger.info('All results has been sent.')
 
 
 def channelmessage(bot, messageDict, chat_id, logger):
@@ -204,6 +204,7 @@ def main():
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger('requests').setLevel(logging.CRITICAL)
 (STATE) = range(1)
 
 if __name__ == '__main__':
