@@ -20,7 +20,9 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
    urlsDict = {'ehUrlList': [], 'exhUrlList': []}
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
+   resultDict = {} # Contain the download result
    outDict = {}# return the information
+   gidErrorDict = {'gidError': []} # Record the error gids
    strList = [] # contain the message strs.
    strDict = {} #For generate information to the user
    userInfoDict = {} # Dump information to file
@@ -62,7 +64,12 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
                                                   urls=usl
                                                  ) 
                         )
-      
+      for tL in tempList:
+         tLKey = tL.keys()
+         if 'error' in tLKey:
+            logger.warning('gid {0} encountered an error, delete'.format(tL['gid']))
+            gidErrorDict['gidError'].append(tL['gid'])
+            tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
       print (tempDict)
       for url in tempDict:
@@ -75,13 +82,13 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
             print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
          dlpath = path + '{0}/'.format(title) 
-         outDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
-                                                        url=url, 
-                                                        path=dlpath,
-                                                        logger=logger,
-                                                        title=title)
-                        }
-                        )
+         resultDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
+                                                           url=url, 
+                                                           path=dlpath,
+                                                           logger=logger,
+                                                           title=title)
+                           }
+                           )
          
       download.userfiledetect(path=path)
       with open("{0}.mangalog".format(path), 'r') as fo:
@@ -92,7 +99,10 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
       urlSeparateList = [] 
       tempDict = {}   #Delete all useless values 
       tempList = []
+   outDict.update({'resultDict': resultDict})
    outDict.update(errorMessage)
+   if gidErrorDict['gidError']:
+      outDict.update(gidErrorDict)
 #    print (outDict)
    return outDict
 
