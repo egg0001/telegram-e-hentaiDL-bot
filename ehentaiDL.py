@@ -71,7 +71,7 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
-      logger.info("Retrived {0} url(s)' information".format(len(tempDict)))
+      logger.info("Retrieved {0} url(s)' information".format(len(tempDict)))
       for url in tempDict:
       #    print ('----------------3---------------') 
          if config.useEntitle == False and tempDict[url]['jptitle']:

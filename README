@@ -1,0 +1,47 @@
+Telegram-e-hentai-download-bot
+
+A python Telegram bot receiving galleries urls and downloading galleries.
+
+MAJOR FEATURES
+1 While user provide the urls, this bot would download all of them on the user's machine, including
+  but not limited on VPS, PC, Raspberry pi (and its copy), NAS.
+2 If the bot encounters any error during download, it would send the report to user in Telegram.
+3 It exploits e-hentai's api service and multi-threading download to improve the working efficiency.
+4 It contains HTTP/HTTPS proxy function useful in the territory blocking the access to Telegram and/or 
+  e-hentai.
+
+ENVIRONMENT ADN PYTHON VERSION
+Tested OS: Ubuntu 14.04 and 16.04 (Any OS supporting python3 would be good to go)
+
+Python version: 3.5 or above
+
+PRE-REQUEST
+This program relies on several third-party python modules.
+
+requests   http://docs.python-requests.org
+python-telegram-bot   https://python-telegram-bot.readthedocs.io
+PILLOW   https://pillow.readthedocs.io
+
+BASIC USAGE
+
+1 Apply a bot at @BotFather on Telegram. Then retrieve the bot token.
+
+2 Paste the token at the 'token' variable in './DLmodules/config.template'. After that, view and customize 
+  the settings in this file then remove the '.template' beyond the filename.
+
+3 Run 'tgexhDLbot.py'.
+
+4 Now user can exploit Telegram to access the bot. Please use '/start' common to initiate the bot and follow 
+  the replied text to use it.
+
+If user hopes to run this bot on server's background, creating a service with systemd (Ubuntu 16.04) or upstart
+(Ubuntu 14.04) is recommended.
+
+LICENSE: WTFPL
+
+Although I do not have a huge amount of time to maintain this repo, if you encounter any bug or have 
+any suggestion, please feel free to contact me. I would do my best to deal with them.
+
+
+Author's e-mail: saimonekurea[at]gmail.com
+Author's Telegram: https://t.me/egg0001

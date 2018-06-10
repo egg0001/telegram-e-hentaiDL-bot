@@ -138,7 +138,7 @@ def mangadownloadctl(mangasession, url, path, logger, title):
    return resultDict
 
 def mangadownload(url, mangasession, filename, path, logger, q):
-   logger.info('Start download page {0}'.format(filename))
+   logger.info('Page {0} download start'.format(filename))
    errorMessage = {url: {}}
    err = 0
    for err in range(config.timeoutRetry):

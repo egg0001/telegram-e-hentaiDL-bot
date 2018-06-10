@@ -1,19 +1,51 @@
 #!/usr/bin/python3
-# Please view and set all the variable, than delete [.template] behind the filename.
+
+# Please view and set all the variable, then delete [.template] behind the filename.
+# Please do not remove every variable in this config file or the bot would crash!!
+
 #---------------Bot session--------------------------------
-token = ''
-telegramUsername = ''
-proxy = [] # Bot and downloader would all use
-           #this proxy 
-messageTimeOutRetry = 5
+token = '' # The bot token received form @BotFather.
+
+telegramUsername = '' # User's Telegram ID to identify the bot user. 
+
+proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e-hentai.
+           # Example: proxy = ['http://127.0.0.1:1080']
+           # Both bot and downloader would all use this proxy.
+
+messageTimeOutRetry = 5 # The retry limitation for resending messages to user due to Telegram's
+                        # timeout error.
 
 #----------------Downloader session--------------------------
 
 headers = [{"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",}]
+          # If user do not know what's this, please do not touch this variable.
+
 userCookies = {}
-forceCookiesEH = True
-path = "./mangaDL/"
-timeoutRetry = 3
-useEntitle = False
-rest = "3-8"
-dlThreadLimit = 3
+
+          # User's cookies (json form) for verifying the identity on e-hentai and/or exhentai.  
+          # If user does not provide cookies or user's cookies could not access exhentai, 
+          # this bot would not ownload exhentai's galleries.
+          # Each browser has different methods to retrieve cookies of e-hentai/exhentai; 
+          # for more information, please ask Google. 
+          # example:  
+          #                              userCookies = {'Key1: 'Value1',
+          #                                             'Key2': 'Value2',}
+          # 
+forceCookiesEH = True   # While True, even user's cookies could not access exhentai,
+                        # the bot would still use this cookies in requests' session.
+
+path = "./mangaDL/"     # The path to storage the downloaded galleries.
+ 
+timeoutRetry = 3        # The retry limitation while encountering issues in the page download function.
+
+useEntitle = False      # While True, the bot would exploit English title to be the directory name in  
+                        # the galleries storage path.
+                        # The bot would use English title if the Japanese title is missed even this
+                        # variable is False.
+
+rest = "3-8"            # The sleeping time between downloading every gallery.
+
+dlThreadLimit = 3       # The thread limitation of the download function. 
+                        # If user set a far higher value, e-hentai/exhentai would ban this user's IP.
+                        # If efficiency is not a major concern, user could set it to 1;
+                        # and the bot would use single thread to download galleries.

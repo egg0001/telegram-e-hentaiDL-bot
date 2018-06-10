@@ -93,7 +93,7 @@ def state(bot, update, user_data, chat_data):
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
-   logger.info('Began to send download result(s).')
+   logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
       messageDict = {"messageContent": [outDict['cookiesError']],
                      'messageCate': 'message',
