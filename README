@@ -26,7 +26,7 @@ BASIC USAGE
 
 1 Apply a bot at @BotFather on Telegram. Then retrieve the bot token.
 
-2 Paste the token at the 'token' variable in './DLmodules/config.template'. After that, view and customize 
+2 Paste the token at the 'token' variable in './DLmodules/config.py.template'. After that, view and customize 
   the settings in this file then remove the '.template' beyond the filename.
 
 3 Run 'tgexhDLbot.py'.
