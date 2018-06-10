@@ -3,8 +3,8 @@ Telegram-e-hentai-download-bot
 A python Telegram bot receiving galleries urls and downloading galleries.
 
 MAJOR FEATURES
-1 While user provide the urls, this bot would download all of them on the user's machine, including
-  but not limited on VPS, PC, Raspberry pi (and its copy), NAS.
+1 While user providing galleries urls, this bot would download all of them on the user's machine running 
+  this bot, including but not limited on VPS, PC, Raspberry pi (and its copy), NAS.
 2 If the bot encounters any error during download, it would send the report to user in Telegram.
 3 It exploits e-hentai's api service and multi-threading download to improve the working efficiency.
 4 It contains HTTP/HTTPS proxy function useful in the territory blocking the access to Telegram and/or 
