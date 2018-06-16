@@ -144,7 +144,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt):
       #            name='{0}.zip'.format(title), 
       #            kwargs={'path': path, 'title': title, 'removeDir':dlopt.removeDir})
       # t.start()
-      zipErrorDict = zipmangadir(title=title, removeDir=dlopt.removeDir)
+      zipErrorDict = zipmangadir(title=title, removeDir=dlopt.removeDir, logger=logger)
       if zipErrorDict.get(title):
          if resultDict['dlErrorDict'].get('zipError'):
             resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
@@ -209,24 +209,25 @@ def mangadownload(url, mangasession, filename, path, logger, q):
    else:
       pass
 
-def zipmangadir(title, removeDir):
-#    print ('Zip function')
+def zipmangadir(title, removeDir, logger):
+   logger.info('Begin archive {0}.'.format(title))
    zipErrorDict = {'zipError': {}}
    try:
       resultZip = make_archive(base_name=title,
                                format='zip',
                                root_dir=config.path,
                                base_dir=title)
-      fileNameList = resultZip.split('/')
-      fileName = fileNameList[-1]
-      move(src=os.path.join('./', fileName), 
-           dst=os.path.join(config.path, fileName))
+      fileName = '{0}.zip'.format(title)
+      move(src=resultZip, 
+           dst=os.path.join(config.path, fileName)
+          )
       if removeDir == True:
          rmtree('{0}{1}'.format(config.path, title))
    except Exception as error:
+      logger.exception('Raise exception {0} while archiving {1}.'.format(str(error), title))
       zipErrorDict['zipError'].update({title, str(error)})
    else:
-      pass
+      logger.info('{0} has been archived.'.format(title))
    return zipErrorDict  
 
 def accesstoehentai(method, mangasession, stop, urls=None):
