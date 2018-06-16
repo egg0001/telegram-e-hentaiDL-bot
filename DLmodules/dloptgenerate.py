@@ -11,7 +11,9 @@ import random
 
 
 class dloptgene():
-   def __init__(self, urls, userCookies, path, changeCookies, canEXH=False, username=None, password=None):
+   def __init__(self, urls, userCookies, path, changeCookies, 
+                canEXH=False, username=None, password=None, 
+                Zip=False, forceZip=False, removeDir=False):
       self.urls = urls # list
       self.userCookies = userCookies # dict
       self.path = path # str
@@ -19,6 +21,9 @@ class dloptgene():
       self.password = password # str, test propose
       self.changeCookies = changeCookies # Bool
       self.canEXH = canEXH # Bool, default is false
+      self.Zip = Zip # Bool, default false
+      self.forceZip = forceZip # Bool, default false
+      self.removeDir = removeDir # bool, default false
 
  
 
@@ -65,7 +70,7 @@ def dloptgenerate(urls, logger):
       canEXH = cookiesinfoDict['canEXH']
       changeCookies = False
    else:
-      print ('Cookies changed')
+      # print ('Cookies changed')
       userCookies = userCookies
       changeCookies = True
       canEXH = False
@@ -77,7 +82,10 @@ def dloptgenerate(urls, logger):
                      userCookies=userCookies,
                      path=config.path,
                      changeCookies=changeCookies,
-                     canEXH=canEXH
+                     canEXH=canEXH,
+                     Zip=config.Zip,
+                     forceZip=config.forceZip,
+                     removeDir=config.removeDir
                     )
 #    print (dlopt.urls)
    dloptDict.update({'dlopt': dlopt, 'errorMessage': errorMessage})

@@ -15,7 +15,7 @@ import random
 import re
 
 
-def mangaspider(urls, mangasession, path, errorMessage, logger):
+def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
    urlsDict = {'ehUrlList': [], 'exhUrlList': []}
    tempList = [] # store the API result from e-h/exh
@@ -85,7 +85,8 @@ def mangaspider(urls, mangasession, path, errorMessage, logger):
                                                            url=url, 
                                                            path=dlpath,
                                                            logger=logger,
-                                                           title=title)
+                                                           title=title,
+                                                           dlopt=dlopt)
                            }
                            )
          
@@ -196,7 +197,8 @@ def Spidercontrolasfunc(dloptDict, logger):
                          mangasession=mangasession,
                          path=dloptDict['dlopt'].path,
                          errorMessage=dloptDict['errorMessage'],
-                         logger=logger
+                         dlopt=dloptDict['dlopt'],
+                         logger=logger,
                         )
    internalCookies = requests.utils.dict_from_cookiejar(mangasession.cookies)
    with open('./DLmodules/.cookiesinfo', 'r') as fo:
