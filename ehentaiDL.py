@@ -104,8 +104,6 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            stateQ=stateQ)
                            }
                            )
-         
-      download.userfiledetect(path=path)
       toMangaLogDict.update(tempDict)
       urlSeparateList = [] 
       tempDict = {}   # Reset all the loop relating variables  
@@ -119,6 +117,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    if zipErrorDict != {}:
       for zED in zipErrorDict:
          resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
+   download.userfiledetect(path=config.path)
    with open("{0}.mangalog".format(config.path), 'r') as fo:
       mangaInfoDict = json.load(fo)
       mangaInfoDict.update(toMangaLogDict)
@@ -157,8 +156,8 @@ def thread_containor(threadQ):
    while True:
       t = threadQ.get()
       t.start()
-      t.join()
-      threadQ.task_done()
+      t.join()      # This function could create multi zip or other threads. 
+
 
 def sessiongenfunc(dloptDict, logger, hasEXH):
    mangasession = requests.Session()
