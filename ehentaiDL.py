@@ -153,9 +153,14 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
 
 
 def thread_containor(threadQ):
+   threadCounter = 0
    while True:
       t = threadQ.get()
       t.start()
+      threadCounter += 1
+      if threadCounter >1:
+         t.join()
+         threadCounter = 0
       t.join()      # This function could create multi zip or other threads. 
 
 
