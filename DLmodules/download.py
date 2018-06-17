@@ -63,7 +63,7 @@ def cookiesfiledetect(foresDelete=False):
    return cookiesInfoDict
 
 
-def mangadownloadctl(mangasession, url, path, logger, title, dlopt):
+def mangadownloadctl(mangasession, url, path, logger, title, dlopt, threadQ=None, stateQ=None):
    logger.info('Begin to download gallery {0}'.format(url))
    stop = dloptgenerate.Sleep(config.rest)
    tempErrDict ={url: {}}
@@ -135,25 +135,32 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt):
    else:
       logger.warning('{0} does not contain any page, maybe deleted'.format(url))
       resultDict['dlErrorDict'].update({'galleryError': usermessage.galleryError})
-#    print (resultDict['dlErrorDict'])
+   print (resultDict['dlErrorDict'])
+      
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
-   if dlopt.Zip == True:
-      # print ('Zip function')
-      # t = Thread(target=zipmangadir,
-      #            name='{0}.zip'.format(title), 
-      #            kwargs={'path': path, 'title': title, 'removeDir':dlopt.removeDir})
+   if dlopt.Zip == True and (resultDict['dlErrorDict'] == {} or dlopt.forceZip == True):
+      
+      print ('Zip function')
+      t = Thread(target=zipmangadir,
+                 name='{0}.zip'.format(title), 
+                 kwargs={'url': url, 
+                         'logger': logger,
+                         'title': title, 
+                         'removeDir':dlopt.removeDir, 
+                         'stateQ': stateQ})
+      threadQ.put(t)
       # t.start()
-      zipErrorDict = zipmangadir(title=title, removeDir=dlopt.removeDir, logger=logger)
-      if zipErrorDict.get(title):
-         if resultDict['dlErrorDict'].get('zipError'):
-            resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
-         else:
-            resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
-   if resultDict['dlErrorDict']:
-      with open((path + 'errorLog'), 'w') as fo:
-         json.dump(resultDict['dlErrorDict'], fo)
-#    print (resultDict)
+#       zipErrorDict = zipmangadir(title=title, removeDir=dlopt.removeDir, logger=logger)
+#       if zipErrorDict.get(title):
+#          if resultDict['dlErrorDict'].get('zipError'):
+#             resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
+#          else:
+#             resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
+#    if resultDict['dlErrorDict']:
+#       with open((path + 'errorLog'), 'w') as fo:
+#          json.dump(resultDict['dlErrorDict'], fo)
+
    return resultDict
 
 def mangadownload(url, mangasession, filename, path, logger, q):
@@ -209,9 +216,9 @@ def mangadownload(url, mangasession, filename, path, logger, q):
    else:
       pass
 
-def zipmangadir(title, removeDir, logger):
+def zipmangadir(url, title, removeDir, logger, stateQ):
    logger.info('Begin archive {0}.'.format(title))
-   zipErrorDict = {'zipError': {}}
+   zipErrorDict = {}
    try:
       resultZip = make_archive(base_name=title,
                                format='zip',
@@ -225,10 +232,11 @@ def zipmangadir(title, removeDir, logger):
          rmtree('{0}{1}'.format(config.path, title))
    except Exception as error:
       logger.exception('Raise exception {0} while archiving {1}.'.format(str(error), title))
-      zipErrorDict['zipError'].update({title, str(error)})
+      zipErrorDict.update({url: {'zipArchiveError': str(error)}})  
    else:
       logger.info('{0} has been archived.'.format(title))
-   return zipErrorDict  
+   if zipErrorDict != None:
+      stateQ.put(zipErrorDict)
 
 def accesstoehentai(method, mangasession, stop, urls=None):
 #    print (urls)

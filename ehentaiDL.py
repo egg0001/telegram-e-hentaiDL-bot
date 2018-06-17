@@ -13,6 +13,7 @@ from queue import Queue
 import time 
 import random 
 import re
+from threading import Thread
 
 
 def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
@@ -20,15 +21,27 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    urlsDict = {'ehUrlList': [], 'exhUrlList': []}
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
+   toMangaLogDict = {} # Transport the manga attributes to .mangalog file. 
    resultDict = {} # Contain the download result
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
+   zipErrorDict = {} # Contain all the error message of zip function.
 #    strList = [] # contain the message strs.
 #    strDict = {} #For generate information to the user
 #    userInfoDict = {} # Dump information to file
 #    imageObjDict = {} # Get the image objects 
 #    queueImageObj = Queue() # store the image memory objects
-   
+   if dlopt.Zip == True:
+      threadQ = Queue() #Contain the zip threads 
+      stateQ = Queue()  # Contin the report of zip threads 
+      tc = Thread(target=thread_containor, 
+                  name='tc', 
+                  kwargs={'threadQ': threadQ},
+                  daemon=True)
+      tc.start()
+   else:
+      threadQ = None
+      stateQ = None
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhUrlList'].append(url)
@@ -86,21 +99,31 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            path=dlpath,
                                                            logger=logger,
                                                            title=title,
-                                                           dlopt=dlopt)
+                                                           dlopt=dlopt,
+                                                           threadQ=threadQ,
+                                                           stateQ=stateQ)
                            }
                            )
          
       download.userfiledetect(path=path)
-      with open("{0}.mangalog".format(path), 'r') as fo:
-         mangaInfoDict = json.load(fo)
-         mangaInfoDict.update(tempDict)
-      with open("{0}.mangalog".format(path), 'w') as fo:
-         json.dump(mangaInfoDict, fo)
+      toMangaLogDict.update(tempDict)
       urlSeparateList = [] 
-      tempDict = {}   #Delete all useless values 
+      tempDict = {}   # Reset all the loop relating variables  
       tempList = []
    outDict.update({'resultDict': resultDict})
    outDict.update(errorMessage)
+   threadQ.join()
+   while not stateQ.empty():
+      temp = stateQ.get()
+      zipErrorDict.update(temp)
+   if zipErrorDict != {}:
+      for zED in zipErrorDict:
+         resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
+   with open("{0}.mangalog".format(config.path), 'r') as fo:
+      mangaInfoDict = json.load(fo)
+      mangaInfoDict.update(toMangaLogDict)
+   with open("{0}.mangalog".format(config.path), 'w') as fo:
+      json.dump(mangaInfoDict, fo)
    if gidErrorDict['gidError']:
       outDict.update(gidErrorDict)
 #    print (outDict)
@@ -128,6 +151,14 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
       else: 
          usefulCookiesDict.update({'e-h': True})
    return usefulCookiesDict
+
+
+def thread_containor(threadQ):
+   while True:
+      t = threadQ.get()
+      t.start()
+      t.join()
+      threadQ.task_done()
 
 def sessiongenfunc(dloptDict, logger, hasEXH):
    mangasession = requests.Session()
