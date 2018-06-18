@@ -15,10 +15,13 @@ import random
 import re
 from threading import Thread
 
+# Can add a simple category function to this bot 
+# doujinshi, manga, artistcg, etc 
+
 
 def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
-   urlsDict = {'ehUrlList': [], 'exhUrlList': []}
+   urlsDict = {'e-hentai': [], 'exhentai': []}
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
    toMangaLogDict = {} # Transport the manga attributes to .mangalog file. 
@@ -26,11 +29,6 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
    zipErrorDict = {} # Contain all the error message of zip function.
-#    strList = [] # contain the message strs.
-#    strDict = {} #For generate information to the user
-#    userInfoDict = {} # Dump information to file
-#    imageObjDict = {} # Get the image objects 
-#    queueImageObj = Queue() # store the image memory objects
    if dlopt.Zip == True:
       threadQ = Queue() #Contain the zip threads 
       stateQ = Queue()  # Contin the report of zip threads 
@@ -44,13 +42,13 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
       stateQ = None
    for url in urls:
       if url.find('exhentai') != -1:
-         urlsDict['exhUrlList'].append(url)
+         urlsDict['exhentai'].append(url)
       else:
-         urlsDict['ehUrlList'].append(url)
+         urlsDict['e-hentai'].append(url)
 #    print(urlsDict)
    for ulCategory in urlsDict:
       # print ('---------1--------------')
-      if ulCategory == 'exhUrlList':
+      if ulCategory == 'exhentai':
          exh = True
       else:
          exh = False
@@ -84,7 +82,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
-      logger.info("Retrieved {0} url(s)' information".format(len(tempDict)))
+      logger.info("Retrieved {0} gallery(s)' information in {1}.".format(len(tempDict), ulCategory))
       for url in tempDict:
       #    print ('----------------3---------------') 
          if config.useEntitle == False and tempDict[url]['jptitle']:
@@ -93,13 +91,20 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
          elif tempDict[url]['jptitle'] == None or config.useEntitle == True:
             # print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
-         dlpath = path + '{0}/'.format(title) 
+         if tempDict[url]["category"] != []:
+            category = tempDict[url]["category"][0]
+        
+      #       dlpath = '{0}{1}/{2}/'.format(path, tempDict[url]["category"][0], title)
+         else:
+            category = None
+      #       dlpath = path + '{0}/'.format(title) 
          resultDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
                                                            url=url, 
-                                                           path=dlpath,
+                                                           path=path,
                                                            logger=logger,
                                                            title=title,
                                                            dlopt=dlopt,
+                                                           category=category,
                                                            threadQ=threadQ,
                                                            stateQ=stateQ)
                            }
@@ -153,15 +158,18 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
 
 
 def thread_containor(threadQ):
+   # Put any threads to this function and it would run separately.
+   # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
+   # Or the program would stock.
    threadCounter = 0
    while True:
       t = threadQ.get()
       t.start()
       threadCounter += 1
-      if threadCounter >1:
-         t.join()
+      if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
+         t.join() 
          threadCounter = 0
-      t.join()      # This function could create multi zip or other threads. 
+      t.join()       
 
 
 def sessiongenfunc(dloptDict, logger, hasEXH):

@@ -87,6 +87,7 @@ def genmangainfoapi(resultJsonDict, exh):
                        "group": group,
                        "parody": parody,
                        "character": character,
+                       "category": category
                 #        "imageurlSmall": imageurlSmall,
                 #        "imageForm": imageForm
                       }})

@@ -13,7 +13,7 @@ from . import dloptgenerate
 from . import datafilter
 from . import usermessage
 from threading import Thread
-from threading import Lock
+# from threading import Lock
 from queue import Queue
 from io import BytesIO
 from shutil import make_archive
@@ -63,7 +63,11 @@ def cookiesfiledetect(foresDelete=False):
    return cookiesInfoDict
 
 
-def mangadownloadctl(mangasession, url, path, logger, title, dlopt, threadQ=None, stateQ=None):
+def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=None, threadQ=None, stateQ=None):
+   if category == None:
+      dlPath = path
+   else:
+      dlPath = '{0}{1}/'.format(path, category)
    logger.info('Begin to download gallery {0}'.format(url))
    stop = dloptgenerate.Sleep(config.rest)
    tempErrDict ={url: {}}
@@ -88,7 +92,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, threadQ=None
                        kwargs={'url': mP[1],
                                'mangasession': mangasession,
                                'filename': mP[0],
-                               'path': path,
+                               'path': '{0}{1}/'.format(dlPath, title),
                                'logger': logger,
                                'q': q
                                }
@@ -118,13 +122,13 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, threadQ=None
          tempErrDict[url].update(temp)
       if tempErrDict[url]:
          resultDict['dlErrorDict'].update(tempErrDict[url])
-      filesList = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+      filesList = [f for f in os.listdir('{0}{1}/'.format(dlPath, title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, title), f))] 
       previewImage = filesList[0]
       previewImageFormat = (previewImage.split('.'))[-1]
       if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
          previewImageFormat = 'jpeg'
       try:
-         i = Image.open('{0}{1}'.format(path, previewImage))
+         i = Image.open('{0}{1}/{2}'.format(dlPath, title, previewImage))
          bio = BytesIO()
          bio.name = title
          i.save(bio, format=previewImageFormat)
@@ -138,10 +142,12 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, threadQ=None
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
+   print (path)
    if dlopt.Zip == True and (resultDict['dlErrorDict'] == {} or dlopt.forceZip == True):
       t = Thread(target=zipmangadir,
                  name='{0}.zip'.format(title), 
-                 kwargs={'url': url, 
+                 kwargs={'url': url,
+                         'path': dlPath,
                          'logger': logger,
                          'title': title, 
                          'removeDir':dlopt.removeDir, 
@@ -214,25 +220,26 @@ def mangadownload(url, mangasession, filename, path, logger, q):
    else:
       pass
 
-def zipmangadir(url, title, removeDir, logger, stateQ, threadQ):
-   logger.info('Begin archive {0}.'.format(title))
+def zipmangadir(url, path, title, removeDir, logger, stateQ, threadQ):
+   logger.info('Begin archiving gallery files of {0}.'.format(url))
    zipErrorDict = {}
+
    try:
       resultZip = make_archive(base_name=title,
                                format='zip',
-                               root_dir=config.path,
+                               root_dir=path,
                                base_dir=title)
       fileName = '{0}.zip'.format(title)
       move(src=resultZip, 
-           dst=os.path.join(config.path, fileName)
+           dst=os.path.join(path, fileName)
           )
       if removeDir == True:
-         rmtree('{0}{1}'.format(config.path, title))
+         rmtree('{0}{1}'.format(path, title))
    except Exception as error:
-      logger.exception('Raise exception {0} while archiving {1}.'.format(str(error), title))
+      logger.exception('Raise exception {0} while archiving files of {1}.'.format(str(error), url))
       zipErrorDict.update({url: {'zipArchiveError': str(error)}})
    else:
-      logger.info('{0} has been archived.'.format(title))
+      logger.info('Gallery files of {0} has been archived.'.format(url))
    if zipErrorDict != None:
       stateQ.put(zipErrorDict)
    threadQ.task_done()
