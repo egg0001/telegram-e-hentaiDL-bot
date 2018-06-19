@@ -15,8 +15,6 @@ import random
 import re
 from threading import Thread
 
-# Can add a simple category function to this bot 
-# doujinshi, manga, artistcg, etc 
 
 
 def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):

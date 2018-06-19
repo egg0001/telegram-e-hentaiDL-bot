@@ -16,6 +16,7 @@ from tgbotconvhandler import messageanalyze
 from tgbotconvhandler import ehdownloader
 from DLmodules import config
 from DLmodules import usermessage
+from queue import Queue
 
 
 
@@ -86,12 +87,28 @@ def state(bot, update, user_data, chat_data):
                  kwargs={'bot':bot,
                          'urlResultList': outputDict['urlResultList'], 
                          'logger': logger,
-                         "chat_id": update.message.chat_id})
-      t.start()
+                         "chat_id": update.message.chat_id,
+                         'threadQ': threadQ})
+      threadQ.put(t)
 
    return state
 
-def downloadfunc(bot, urlResultList, logger, chat_id):
+
+def thread_containor(threadQ):
+   # Put any threads to this function and it would run separately.
+   # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
+   # Or the program would stock.
+   threadCounter = 0
+   while True:
+      t = threadQ.get()
+      t.start()
+      threadCounter += 1
+      if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
+         t.join() 
+         threadCounter = 0
+      t.join()     
+
+def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
@@ -145,6 +162,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                            logger=logger
                           )             
    logger.info('All results has been sent.')
+   threadQ.task_done()
 
 
 def channelmessage(bot, messageDict, chat_id, logger):
@@ -200,11 +218,22 @@ def main():
    dp.add_handler(conv_handler)
    dp.add_error_handler(error)
    updater.start_polling(poll_interval=1.0, timeout=1.0)
+   tc = Thread(target=thread_containor, 
+               name='tc', 
+               kwargs={'threadQ': threadQ},
+               daemon=True)
+   tc.start()
+   logger.info('Download thread containor initiated.')
+   logger.info('Bot started.')
    updater.idle()
+   
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.CRITICAL)
+threadQ = Queue()  # This queue object put the download function into the thread containor 
+                   # Using this thread containor wound also limits the download function thread
+                   # to prevent e-h to ban IP.
 (STATE) = range(1)
 
 if __name__ == '__main__':
