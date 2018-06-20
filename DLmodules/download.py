@@ -173,7 +173,16 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
 #    print (path)
-   if dlopt.Zip == True and (resultDict['dlErrorDict'] == {} or dlopt.forceZip == True):
+   if resultDict['dlErrorDict']:
+      with open(('{0}{1}/errorLog'.format(dlPath, title)), 'w') as fo:
+         json.dump(resultDict['dlErrorDict'], fo)
+   print (resultDict['dlErrorDict'])
+   criticalDownloadError = False
+   for u in resultDict['dlErrorDict']:
+      if resultDict['dlErrorDict'][u].get('Download error'):
+         criticalDownloadError = True
+         break
+   if dlopt.Zip == True and (criticalDownloadError == False or dlopt.forceZip == True):
 #       t = Thread(target=zipmangadir,
 #                  name='{0}.zip'.format(title), 
 #                  kwargs={'url': url,
@@ -195,9 +204,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
             resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
          else: 
             resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
-   if resultDict['dlErrorDict']:
-      with open((path + 'errorLog'), 'w') as fo:
-         json.dump(resultDict['dlErrorDict'], fo)
+
 
    return resultDict
 
@@ -235,7 +242,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
             else: 
                pass
          os.makedirs(path, exist_ok=True)
-         previewimage = mangasession.get(imageUrl, stream=False)
+         previewimage = mangasession.get(imageUrl, stream=True)
          if previewimage.status_code == 200:
             with open("{0}{1}.{2}".format(path, filename, imageForm), 'wb') as handle:
                for chunk in previewimage:

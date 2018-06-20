@@ -190,7 +190,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
                           )       
       if outDict['resultDict'][result]['dlErrorDict']:
          for error in outDict['resultDict'][result]['dlErrorDict']:
-            messageDict = {"messageContent": [error, '{0}: {1}'.format(result, outDict['resultDict'][result]['dlErrorDict'][error])],
+            messageDict = {"messageContent": [error,  outDict['resultDict'][result]['dlErrorDict'][error]],
                            'messageCate': 'message',
                           }
             channelmessage(bot=bot, 
