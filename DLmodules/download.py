@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 
+# The download function also needs a thread containor 
+# Or it would raise some strange errors 
 
 import os
 import requests
 import time
 import json
 from PIL import Image
+# from PIL import ImageFile
+# ImageFile.LOAD_TRUNCATED_IMAGES = True
 import re
 import random
 from . import config
@@ -50,6 +54,20 @@ def userfiledetect(path):
          else:
             pass
 
+def thread_containor(threadQ):
+   # Put any threads to this function and it would run separately.
+   # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
+   # Or the program would stock.
+   threadCounter = 0
+   while True:
+      t = threadQ.get()
+      t.start()
+      threadCounter += 1
+      if threadCounter == config.dlThreadLimit:  # This condition limit the amount of threads running simultaneously.
+         t.join() 
+         threadCounter = 0
+      # t.join()       
+
 def cookiesfiledetect(foresDelete=False):
    cookiesInfoDict = {'internalCookies': {},
                       'canEXH': False,
@@ -68,6 +86,13 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
       dlPath = path
    else:
       dlPath = '{0}{1}/'.format(path, category)
+   threadQ = Queue() #Contain the zip threads 
+#    stateQ = Queue()  # Contin the report of zip threads 
+   tc = Thread(target=thread_containor, 
+               name='tc', 
+               kwargs={'threadQ': threadQ},
+               daemon=True)
+   tc.start()
    logger.info('Begin to download gallery {0}'.format(url))
    stop = dloptgenerate.Sleep(config.rest)
    tempErrDict ={url: {}}
@@ -81,7 +106,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
 
-   threadCounter = 0
+#    threadCounter = 0
    q = Queue()
 #    print (pageContentDict)
    if pageContentDict.get('contentPages'):
@@ -94,15 +119,19 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
                                'filename': mP[0],
                                'path': '{0}{1}/'.format(dlPath, title),
                                'logger': logger,
-                               'q': q
+                               'q': q,
+                               'threadQ': threadQ
                                }
                      )
-            threadCounter += 1
-            t.start()
-            if threadCounter >= config.dlThreadLimit:
-               t.join()
-               threadCounter = 0
-         t.join()
+            threadQ.put(t)
+      #       threadCounter += 1
+      #       t.start()
+      #       if threadCounter >= config.dlThreadLimit:
+      #          t.join()
+      #          threadCounter = 0
+      #    t.join()
+         threadQ.join()
+         logger.info('{0} download completed.'.format(url))
          if pageContentDict['nextPage'] != -1:
             htmlContentList = accesstoehentai(method='get', 
                                               mangasession=mangasession, 
@@ -142,32 +171,36 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
-   print (path)
+#    print (path)
    if dlopt.Zip == True and (resultDict['dlErrorDict'] == {} or dlopt.forceZip == True):
-      t = Thread(target=zipmangadir,
-                 name='{0}.zip'.format(title), 
-                 kwargs={'url': url,
-                         'path': dlPath,
-                         'logger': logger,
-                         'title': title, 
-                         'removeDir':dlopt.removeDir, 
-                         'stateQ': stateQ,
-                         'threadQ': threadQ})
-      threadQ.put(t)
+#       t = Thread(target=zipmangadir,
+#                  name='{0}.zip'.format(title), 
+#                  kwargs={'url': url,
+#                          'path': dlPath,
+#                          'logger': logger,
+#                          'title': title, 
+#                          'removeDir':dlopt.removeDir, 
+#                          'stateQ': stateQ,
+#                          'threadQ': threadQ})
+#       threadQ.put(t)
       # t.start()
-#       zipErrorDict = zipmangadir(title=title, removeDir=dlopt.removeDir, logger=logger)
-#       if zipErrorDict.get(title):
-#          if resultDict['dlErrorDict'].get('zipError'):
-#             resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
-#          else: 
-#             resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
-#    if resultDict['dlErrorDict']:
-#       with open((path + 'errorLog'), 'w') as fo:
-#          json.dump(resultDict['dlErrorDict'], fo)
+      zipErrorDict = zipmangadir(url=url, 
+                                 path=dlPath, 
+                                 title=title, 
+                                 removeDir=dlopt.removeDir, 
+                                 logger=logger)
+      if zipErrorDict.get(title):
+         if resultDict['dlErrorDict'].get('zipError'):
+            resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
+         else: 
+            resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
+   if resultDict['dlErrorDict']:
+      with open((path + 'errorLog'), 'w') as fo:
+         json.dump(resultDict['dlErrorDict'], fo)
 
    return resultDict
 
-def mangadownload(url, mangasession, filename, path, logger, q):
+def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    logger.info('Page {0} download start'.format(filename))
    errorMessage = {url: {}}
    err = 0
@@ -179,7 +212,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                                            urls=[url])
          imagepattern = re.compile(r'''src=\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+;fileindex=[a-zA-Z0-9]+;xres=[a-zA-Z0-9]+\/.+\.([a-zA-Z]+))" style=''')
          matchUrls = imagepattern.search(htmlContentList[0])
-         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9]?\/.+\.[a-zA-Z]+)\"''')
+         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9\_\-]?\/.+\.[a-zA-Z]+)\"''')
          matchUrlsAlter = imagepatternAlter.search(htmlContentList[0])
          if matchUrls:                     # This block still has some strange issues..... 
             imageUrl = matchUrls.group(1)
@@ -196,12 +229,15 @@ def mangadownload(url, mangasession, filename, path, logger, q):
             else: 
                pass
          os.makedirs(path, exist_ok=True)
-         previewimage = mangasession.get(imageUrl, stream=True)
-         handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
-         for chunk in previewimage.iter_content(chunk_size=512):
-            if chunk:
+         previewimage = mangasession.get(imageUrl, stream=False)
+         with open("{0}{1}.{2}".format(path, filename, imageForm), 'wb') as handle:
+            for chunk in previewimage:
                handle.write(chunk)
-         handle.close()
+      #    handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
+      #    for chunk in previewimage.iter_content(chunk_size=512):
+      #       if chunk:
+      #          handle.write(chunk)
+      #    handle.close()
       except Exception as error:
          logger.exception('{0} has encounter an error {1}'.format(url, error))
          errorMessage[url].update({err: str(error)})
@@ -219,11 +255,11 @@ def mangadownload(url, mangasession, filename, path, logger, q):
       q.put(errorMessage)
    else:
       pass
+   threadQ.task_done()
 
-def zipmangadir(url, path, title, removeDir, logger, stateQ, threadQ):
+def zipmangadir(url, path, title, removeDir, logger, stateQ=None, threadQ=None):
    logger.info('Begin archiving gallery files of {0}.'.format(url))
    zipErrorDict = {}
-
    try:
       resultZip = make_archive(base_name=title,
                                format='zip',
@@ -240,9 +276,13 @@ def zipmangadir(url, path, title, removeDir, logger, stateQ, threadQ):
       zipErrorDict.update({url: {'zipArchiveError': str(error)}})
    else:
       logger.info('Gallery files of {0} has been archived.'.format(url))
-   if zipErrorDict != None:
+   if zipErrorDict != None and stateQ != None:
       stateQ.put(zipErrorDict)
-   threadQ.task_done()
+   if threadQ != None:
+      threadQ.task_done()
+   else:
+      pass
+   return zipErrorDict
 
 def accesstoehentai(method, mangasession, stop, urls=None):
 #    print (urls)

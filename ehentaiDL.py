@@ -27,17 +27,17 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
    zipErrorDict = {} # Contain all the error message of zip function.
-   if dlopt.Zip == True:
-      threadQ = Queue() #Contain the zip threads 
-      stateQ = Queue()  # Contin the report of zip threads 
-      tc = Thread(target=thread_containor, 
-                  name='tc', 
-                  kwargs={'threadQ': threadQ},
-                  daemon=True)
-      tc.start()
-   else:
-      threadQ = None
-      stateQ = None
+#    if dlopt.Zip == True:
+#       threadQ = Queue() #Contain the zip threads 
+#       stateQ = Queue()  # Contin the report of zip threads 
+#       tc = Thread(target=thread_containor, 
+#                   name='tc', 
+#                   kwargs={'threadQ': threadQ},
+#                   daemon=True)
+#       tc.start()
+#    else:
+#       threadQ = None
+#       stateQ = None
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhentai'].append(url)
@@ -103,8 +103,9 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            title=title,
                                                            dlopt=dlopt,
                                                            category=category,
-                                                           threadQ=threadQ,
-                                                           stateQ=stateQ)
+                                                      #      threadQ=threadQ,
+                                                      #      stateQ=stateQ
+                                                           )
                            }
                            )
       toMangaLogDict.update(tempDict)
@@ -113,13 +114,13 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
       tempList = []
    outDict.update({'resultDict': resultDict})
    outDict.update(errorMessage)
-   threadQ.join()
-   while not stateQ.empty():
-      temp = stateQ.get()
-      zipErrorDict.update(temp)
-   if zipErrorDict != {}:
-      for zED in zipErrorDict:
-         resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
+#    threadQ.join()
+#    while not stateQ.empty():
+#       temp = stateQ.get()
+#       zipErrorDict.update(temp)
+#    if zipErrorDict != {}:
+#       for zED in zipErrorDict:
+#          resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
    download.userfiledetect(path=config.path)
    with open("{0}.mangalog".format(config.path), 'r') as fo:
       mangaInfoDict = json.load(fo)
