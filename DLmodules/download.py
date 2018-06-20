@@ -152,6 +152,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
       if tempErrDict[url]:
          resultDict['dlErrorDict'].update(tempErrDict[url])
       filesList = [f for f in os.listdir('{0}{1}/'.format(dlPath, title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, title), f))] 
+      filesList.sort()
       previewImage = filesList[0]
       previewImageFormat = (previewImage.split('.'))[-1]
       if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
@@ -210,9 +211,13 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
                                            mangasession=mangasession,
                                            stop=dloptgenerate.Sleep('1-2'),
                                            urls=[url])
+         if htmlContentList == []:
+            logger.error('Encountered an empty response while download html content of {0}, retry.'.format(url))
+            err += 1
+            continue
          imagepattern = re.compile(r'''src=\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+;fileindex=[a-zA-Z0-9]+;xres=[a-zA-Z0-9]+\/.+\.([a-zA-Z]+))" style=''')
          matchUrls = imagepattern.search(htmlContentList[0])
-         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9\_\-]?\/.+\.[a-zA-Z]+)\"''')
+         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9_-]?\/.+\.[a-zA-Z]+)\"''')
          matchUrlsAlter = imagepatternAlter.search(htmlContentList[0])
          if matchUrls:                     # This block still has some strange issues..... 
             imageUrl = matchUrls.group(1)
@@ -230,9 +235,14 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
                pass
          os.makedirs(path, exist_ok=True)
          previewimage = mangasession.get(imageUrl, stream=False)
-         with open("{0}{1}.{2}".format(path, filename, imageForm), 'wb') as handle:
-            for chunk in previewimage:
-               handle.write(chunk)
+         if previewimage.status_code == 200:
+            with open("{0}{1}.{2}".format(path, filename, imageForm), 'wb') as handle:
+               for chunk in previewimage:
+                  handle.write(chunk)
+         else:
+            err += 1
+            logger.error("Download status code error.")
+            continue
       #    handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
       #    for chunk in previewimage.iter_content(chunk_size=512):
       #       if chunk:
@@ -250,7 +260,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
          break
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
-
+      errorMessage[url].update({'Download error': 'Reached maximum retry counts while download this page.'})
    if errorMessage[url]:    
       q.put(errorMessage)
    else:

@@ -181,8 +181,12 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
    else:
       mangasession.headers.update({{"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",}})
    if config.proxy:
-      proxypattern = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d{1,5})")
-      proxy = proxypattern.search(random.choice(config.proxy)).group(1)
+      # proxypattern = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d{1,5})")
+      # proxy = proxypattern.search(random.choice(config.proxy)).group(1)
+      if config.proxy[0].find('socks5') != -1:
+         proxy = config.proxy[0].replace('socks5', 'socks5h')
+      else:
+         proxy = config.proxy[0]
       proxies = {"http": proxy, "https": proxy,}
       mangasession.proxies = proxies
    else:

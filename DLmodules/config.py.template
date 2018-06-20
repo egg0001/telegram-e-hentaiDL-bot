@@ -9,7 +9,7 @@ token = '' # The bot token received form @BotFather.
 telegramUsername = '' # User's Telegram ID to identify the bot user. 
 
 proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e-hentai.
-           # Example: proxy = ['http://127.0.0.1:1080']
+           # Example: proxy = ['http://127.0.0.1:1080'] (http) or  proxy = ['socks5://127.0.0.1:1080'] (socks)
            # Both bot and downloader would all use this proxy.
 
 messageTimeOutRetry = 5 # The retry limitation for resending messages to user due to Telegram's
