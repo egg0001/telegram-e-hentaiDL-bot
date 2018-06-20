@@ -32,8 +32,8 @@ BASIC USAGE
 
 3 Run 'tgexhDLbot.py'.
 
-4 Now user can exploit Telegram to access the bot. Please use '/start' common to initiate the bot and follow 
-  the replied text to use it.
+4 Now user can exploit Telegram to access the bot. Please send the gallery(s) urls to the bot directly, and the 
+  bot would begin download the gallery(s).
 
 If user hopes to run this bot on server's background, creating a service with systemd (Ubuntu 16.04) or upstart
 (Ubuntu 14.04) is recommended.

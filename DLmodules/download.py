@@ -213,6 +213,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
                                            urls=[url])
          if htmlContentList == []:
             logger.error('Encountered an empty response while download html content of {0}, retry.'.format(url))
+            errorMessage[url].update({err: 'Encountered an empty response while download html content of {0}, retry.'.format(url)})
             err += 1
             continue
          imagepattern = re.compile(r'''src=\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+;fileindex=[a-zA-Z0-9]+;xres=[a-zA-Z0-9]+\/.+\.([a-zA-Z]+))" style=''')
@@ -242,6 +243,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
          else:
             err += 1
             logger.error("Download status code error.")
+            errorMessage[url].update({err: 'Download status code error.'})
             continue
       #    handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
       #    for chunk in previewimage.iter_content(chunk_size=512):

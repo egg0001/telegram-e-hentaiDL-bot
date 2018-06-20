@@ -12,67 +12,97 @@ from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler 
 from telegram.ext import Filters
 from telegram.ext import ConversationHandler
-from tgbotconvhandler import messageanalyze
+# from tgbotconvhandler import messageanalyze
 from tgbotconvhandler import ehdownloader
+from tgbotconvhandler import urlanalysisdirect
 from DLmodules import config
 from DLmodules import usermessage
 from queue import Queue
 
 
 
-def start(bot, update, user_data, chat_data):
-   user_data.clear()
-   chat_data.clear()
-   user_data.update({"actualusername": str(update.message.from_user.username),
-                     "chat_id": update.message.chat_id}
-                   )
-   logger.info("Actual username is %s.", str(update.message.from_user.username))
-#    update.message.reply_text(text="Welcome to Nakazawa Bookstore, please show your vip card.")
-   chat_data.update({'state': 'verify'})
-   outputDict = messageanalyze(
-                               user_data=user_data, 
-                               chat_data=chat_data,
-                               logger=logger
-                              )
-   user_data.update(outputDict["outputUser_data"])
-   chat_data.update(outputDict["outputChat_data"])
-   messageDict = {"messageContent": outputDict["outputTextList"],
-                  'messageCate': 'message',
-                  }
-   channelmessage(bot=bot, 
-                  messageDict=messageDict, 
-                  chat_id=update.message.chat_id,
-                  logger=logger
-                 )
-   if outputDict["outputChat_data"]['state'] != 'END':
-      state = STATE
-   else:
-      state = ConversationHandler.END
-   return state
+# def start(bot, update, user_data, chat_data):
+#    user_data.clear()
+#    chat_data.clear()
+#    user_data.update({"actualusername": str(update.message.from_user.username),
+#                      "chat_id": update.message.chat_id}
+#                    )
+#    logger.info("Actual username is %s.", str(update.message.from_user.username))
+# #    update.message.reply_text(text="Welcome to Nakazawa Bookstore, please show your vip card.")
+#    chat_data.update({'state': 'verify'})
+#    outputDict = messageanalyze(
+#                                user_data=user_data, 
+#                                chat_data=chat_data,
+#                                logger=logger
+#                               )
+#    user_data.update(outputDict["outputUser_data"])
+#    chat_data.update(outputDict["outputChat_data"])
+#    messageDict = {"messageContent": outputDict["outputTextList"],
+#                   'messageCate': 'message',
+#                   }
+#    channelmessage(bot=bot, 
+#                   messageDict=messageDict, 
+#                   chat_id=update.message.chat_id,
+#                   logger=logger
+#                  )
+#    if outputDict["outputChat_data"]['state'] != 'END':
+#       state = STATE
+#    else:
+#       state = ConversationHandler.END
+#    return state
+
+# def state(bot, update, user_data, chat_data):
+#    inputStr = update.message.text
+#    user_data.update({'chat_id': update.message.chat_id})
+#    outputDict = messageanalyze(inputStr=inputStr, 
+#                                user_data=user_data, 
+#                                chat_data=chat_data,
+#                                logger=logger
+#                               )
+#    user_data.update(outputDict["outputUser_data"])
+#    chat_data.update(outputDict["outputChat_data"])
+#    if outputDict["outputChat_data"]['state'] != 'END':
+#       state =STATE
+#       messageDict = {"messageContent": outputDict["outputTextList"],
+#                      'messageCate': 'message',
+#                     }
+#       channelmessage(bot=bot, 
+#                      messageDict=messageDict, 
+#                      chat_id=update.message.chat_id,
+#                      logger=logger
+#                     )
+#    else:
+#       state = ConversationHandler.END
+#       messageDict = {"messageContent": outputDict["outputTextList"],
+#                      'messageCate': 'message',
+#                     }
+#       channelmessage(bot=bot, 
+#                      messageDict=messageDict, 
+#                      chat_id=update.message.chat_id,
+#                      logger=logger
+#                     )
+#       Ttime = time.asctime(time.localtime()) 
+#       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
+#       t = Thread(target=downloadfunc, 
+#                  name=treadName, 
+#                  kwargs={'bot':bot,
+#                          'urlResultList': outputDict['urlResultList'], 
+#                          'logger': logger,
+#                          "chat_id": update.message.chat_id,
+#                          'threadQ': threadQ})
+#       threadQ.put(t)
+
+#    return state
+
 
 def state(bot, update, user_data, chat_data):
-   inputStr = update.message.text
-   user_data.update({'chat_id': update.message.chat_id})
-   outputDict = messageanalyze(inputStr=inputStr, 
-                               user_data=user_data, 
-                               chat_data=chat_data,
-                               logger=logger
-                              )
-   user_data.update(outputDict["outputUser_data"])
-   chat_data.update(outputDict["outputChat_data"])
-   if outputDict["outputChat_data"]['state'] != 'END':
-      state =STATE
-      messageDict = {"messageContent": outputDict["outputTextList"],
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=update.message.chat_id,
-                     logger=logger
-                    )
-   else:
-      state = ConversationHandler.END
-      messageDict = {"messageContent": outputDict["outputTextList"],
+   user_data.update({'chat_id': update.message.chat_id,
+                     'actualusername': str(update.message.from_user.username),
+                     'userMessage': update.message.text})
+   logger.info("Actual username is %s.", str(update.message.from_user.username))
+   outDict = urlanalysisdirect(user_data=user_data, logger=logger)
+   if outDict['identified'] == True and outDict['urlComfirm'] == True:
+      messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
                     }
       channelmessage(bot=bot, 
@@ -85,15 +115,22 @@ def state(bot, update, user_data, chat_data):
       t = Thread(target=downloadfunc, 
                  name=treadName, 
                  kwargs={'bot':bot,
-                         'urlResultList': outputDict['urlResultList'], 
+                         'urlResultList': outDict['urlResultList'], 
                          'logger': logger,
                          "chat_id": update.message.chat_id,
                          'threadQ': threadQ})
-      threadQ.put(t)
-
-   return state
-
-
+      threadQ.put(t)           
+   else:
+      messageDict = {"messageContent": outDict["outputTextList"],
+                     'messageCate': 'message',
+                    }
+      channelmessage(bot=bot, 
+                     messageDict=messageDict, 
+                     chat_id=update.message.chat_id,
+                     logger=logger
+                    )
+   return ConversationHandler.END
+      
 def thread_containor(threadQ):
    # Put any threads to this function and it would run separately.
    # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
@@ -209,13 +246,17 @@ def main():
    else:   
       updater = Updater(token=config.token)
    dp = updater.dispatcher
-   conv_handler = ConversationHandler(
-                  entry_points=[CommandHandler('start', start, pass_user_data=True, pass_chat_data=True)],
-                  states={STATE: [MessageHandler(Filters.text, state, pass_user_data=True, pass_chat_data=True)]
-                  },
-                  fallbacks=[CommandHandler('cancel', cancel, pass_user_data=True, pass_chat_data=True)],
-   )
-   dp.add_handler(conv_handler)
+#    conv_handler = ConversationHandler(
+#                   entry_points=[CommandHandler('start', start, pass_user_data=True, pass_chat_data=True)],
+#                   states={STATE: [MessageHandler(Filters.text, state, pass_user_data=True, pass_chat_data=True)]
+#                   },
+#                   fallbacks=[CommandHandler('cancel', cancel, pass_user_data=True, pass_chat_data=True)],
+#    )
+
+   messageHandler =  MessageHandler(Filters.text, state, pass_user_data=True, pass_chat_data=True)
+
+#    dp.add_handler(conv_handler)
+   dp.add_handler(messageHandler)
    dp.add_error_handler(error)
    updater.start_polling(poll_interval=1.0, timeout=1.0)
    tc = Thread(target=thread_containor, 
