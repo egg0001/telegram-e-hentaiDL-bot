@@ -143,7 +143,6 @@ def thread_containor(threadQ):
       if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
          t.join() 
          threadCounter = 0
-      t.join()     
 
 def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger)

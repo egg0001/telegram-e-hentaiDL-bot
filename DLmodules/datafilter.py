@@ -113,4 +113,15 @@ def mangadlfilter(htmlContent):
    return pageContentDict
 
 
+def mangadlhtmlfilter(htmlContent, url):
+   downloadUrlsDict = {'imageUrl': "", 'reloadUrl': ''}
+   imagePattern = re.compile('''<img id="img" src="(http://.+)" style="''')
+   matchUrls = imagePattern.search(htmlContent)
+   reloadPattern = re.compile(r'''id\=\"loadfail\" onclick\=\"return nl\(\'([0-9\-]+)\'\)\"''')
+   reloadUrl = reloadPattern.search(htmlContent)
+   if matchUrls:                     # This block still has some strange issues..... 
+      downloadUrlsDict['imageUrl'] = matchUrls.group(1)
+   if reloadUrl:
+      downloadUrlsDict['reloadUrl'] = '{0}?nl={1}'.format(url, reloadUrl.group(1))
+   return downloadUrlsDict
       

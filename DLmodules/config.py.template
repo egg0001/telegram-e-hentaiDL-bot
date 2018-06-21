@@ -50,8 +50,8 @@ dlThreadLimit = 3       # The thread limitation of the download function.
                         # If efficiency is not a major concern, user could set it to 1;
                         # and the bot would use single thread to download galleries.
 
-Zip = True              # While True, the bot would archive the downloaded galleries to a zip file
+Zip = True              # While True, the bot would archive the downloaded galleries to a zip file.
 
-forceZip = False        # While True, the bot would zip the error containing download galleries  
+forceZip = False        # While True, the bot would zip the error containing download galleries.
 
-removeDir = True        # While True, the bot would delete the downloaded galleries' folders after zip 
+removeDir = True        # While True, the bot would delete the downloaded galleries' folders after archived. 

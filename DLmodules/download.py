@@ -8,8 +8,6 @@ import requests
 import time
 import json
 from PIL import Image
-# from PIL import ImageFile
-# ImageFile.LOAD_TRUNCATED_IMAGES = True
 import re
 import random
 from . import config
@@ -124,12 +122,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
                                }
                      )
             threadQ.put(t)
-      #       threadCounter += 1
-      #       t.start()
-      #       if threadCounter >= config.dlThreadLimit:
-      #          t.join()
-      #          threadCounter = 0
-      #    t.join()
+
          threadQ.join()
          logger.info('{0} download completed.'.format(url))
          if pageContentDict['nextPage'] != -1:
@@ -183,17 +176,6 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
          criticalDownloadError = True
          break
    if dlopt.Zip == True and (criticalDownloadError == False or dlopt.forceZip == True):
-#       t = Thread(target=zipmangadir,
-#                  name='{0}.zip'.format(title), 
-#                  kwargs={'url': url,
-#                          'path': dlPath,
-#                          'logger': logger,
-#                          'title': title, 
-#                          'removeDir':dlopt.removeDir, 
-#                          'stateQ': stateQ,
-#                          'threadQ': threadQ})
-#       threadQ.put(t)
-      # t.start()
       zipErrorDict = zipmangadir(url=url, 
                                  path=dlPath, 
                                  title=title, 
@@ -211,58 +193,43 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
 def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    logger.info('Page {0} download start'.format(filename))
    errorMessage = {url: {}}
+   downloadUrlsDict = {}
    err = 0
    for err in range(config.timeoutRetry):
       try:   
+         if err == 0:
+            mangaUrl = url
+         else: 
+            mangaUrl = downloadUrlsDict['reloadUrl']
          htmlContentList = accesstoehentai(method="get", 
                                            mangasession=mangasession,
                                            stop=dloptgenerate.Sleep('1-2'),
-                                           urls=[url])
+                                           urls=[mangaUrl])
          if htmlContentList == []:
             logger.error('Encountered an empty response while download html content of {0}, retry.'.format(url))
-            errorMessage[url].update({err: 'Encountered an empty response while download html content of {0}, retry.'.format(url)})
-            err += 1
-            continue
-         imagepattern = re.compile(r'''src=\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+;fileindex=[a-zA-Z0-9]+;xres=[a-zA-Z0-9]+\/.+\.([a-zA-Z]+))" style=''')
-         matchUrls = imagepattern.search(htmlContentList[0])
-         imagepatternAlter = re.compile(r'''\"(http://[0-9:\.]+\/[a-zA-Z0-9]\/[a-zA-Z0-9-]+\/keystamp=[a-zA-Z0-9-]+[;fileindex=]?[a-zA-Z0-9]?[;xres=]?[a-zA-Z0-9_-]?\/.+\.[a-zA-Z]+)\"''')
-         matchUrlsAlter = imagepatternAlter.search(htmlContentList[0])
-         if matchUrls:                     # This block still has some strange issues..... 
-            imageUrl = matchUrls.group(1)
-            imageForm = matchUrls.group(2)
-         else:
-            imageUrl = matchUrlsAlter.group(1)
-            try:
-               imageForm = matchUrlsAlter.group(2)
-            except Exception as error:
-               imageForm = 'jpg'    # This is a quick fix. Strange
-               logger.exception('{0} has encountered a rex issue'.format(url))
-               with open('{0}{1}{2}{3}{4}'.format(path, filename, 'rexE', err, '.htmlcontent'), 'w') as fo:
-                  fo.write(htmlContentList[0])
-            else: 
-               pass
+            raise htmlPageError("Encountered an empty html response while downloading {0}.".format(url))
+         downloadUrlsDict = datafilter.mangadlhtmlfilter(htmlContent = htmlContentList[0], url=url)
+         imageUrl = downloadUrlsDict['imageUrl']
          os.makedirs(path, exist_ok=True)
-         previewimage = mangasession.get(imageUrl, stream=True)
+         previewimage = mangasession.get(imageUrl, stream=False)
          if previewimage.status_code == 200:
+            contentTypeList = previewimage.headers['Content-Type'].split('/')
+            imageForm = contentTypeList[1]
+            contentLength = int(previewimage.headers['Content-Length'])
             with open("{0}{1}.{2}".format(path, filename, imageForm), 'wb') as handle:
                for chunk in previewimage:
                   handle.write(chunk)
+            if contentLength != int(os.path.getsize("{0}{1}.{2}".format(path, filename, imageForm))):
+               raise jpegEOIError('Image is corrupted while downloading {0}.".format(url)')
          else:
-            err += 1
             logger.error("Download status code error.")
-            errorMessage[url].update({err: 'Download status code error.'})
-            continue
-      #    handle = open("{0}{1}.{2}".format(path, filename, imageForm), 'wb')
-      #    for chunk in previewimage.iter_content(chunk_size=512):
-      #       if chunk:
-      #          handle.write(chunk)
-      #    handle.close()
+            raise downloadStatusCodeError('Encountered a download status code error while downloading {0}.".format(url)')
       except Exception as error:
          logger.exception('{0} has encounter an error {1}'.format(url, error))
          errorMessage[url].update({err: str(error)})
          err += 1
          time.sleep(0.5)
-         with open('{0}{1}{2}{3}'.format(path, filename, err, '.htmlcontent'), 'w') as fo:
+         with open('{0}{1}-{2}{3}'.format(path, filename, err, '.htmlcontent'), 'w') as fo:
             fo.write(htmlContentList[0])
       else:
          err=0
@@ -270,11 +237,25 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
       errorMessage[url].update({'Download error': 'Reached maximum retry counts while download this page.'})
-   if errorMessage[url]:    
+   if errorMessage[url]:  
       q.put(errorMessage)
    else:
       pass
    threadQ.task_done()
+
+
+#-------------Several personalized Exceptions----------------------
+
+class jpegEOIError(Exception):
+   pass
+
+class htmlPageError(Exception):
+   pass
+
+class downloadStatusCodeError(Exception):
+   pass
+
+#---------------------------------------------------------------------
 
 def zipmangadir(url, path, title, removeDir, logger, stateQ=None, threadQ=None):
    logger.info('Begin archiving gallery files of {0}.'.format(url))
