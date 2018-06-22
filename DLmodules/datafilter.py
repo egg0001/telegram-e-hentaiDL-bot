@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import re
+from . import regx 
 
 def exhtest(htmlContent):
 
@@ -98,9 +99,9 @@ def genmangainfoapi(resultJsonDict, exh):
 def mangadlfilter(htmlContent):
    pageContentDict = {'nextPage': '',
                       'contentPages': []}
-   mangaPagepattern = re.compile(r'''https://[a-z\.\-]+\.org\/s\/[a-z0-9]+\/[a-z0-9]+\-([0-9]+)''')
-   nextPagePattern = re.compile(r'''<a href="(https://[a-z\.\-]+\.org\/g/[a-z0-9]+/[a-z0-9]+/\?p\=[0-9]+)" onclick="return false">&gt;</a>''')
-   mangaPages = mangaPagepattern.finditer(htmlContent)
+   mangaPagePattern = re.compile(regx.mangaPagePattern)
+   nextPagePattern = re.compile(regx.nextPagePattern)
+   mangaPages = mangaPagePattern.finditer(htmlContent)
    nextPage = nextPagePattern.search(htmlContent)
    try:
       pageContentDict['nextPage'] = nextPage.group(1)
@@ -115,9 +116,9 @@ def mangadlfilter(htmlContent):
 
 def mangadlhtmlfilter(htmlContent, url):
    downloadUrlsDict = {'imageUrl': "", 'reloadUrl': ''}
-   imagePattern = re.compile('''<img id="img" src="(http://.+)" style="''')
+   imagePattern = re.compile(regx.imagePattern)
    matchUrls = imagePattern.search(htmlContent)
-   reloadPattern = re.compile(r'''id\=\"loadfail\" onclick\=\"return nl\(\'([0-9\-]+)\'\)\"''')
+   reloadPattern = re.compile(regx.reloadPattern)
    reloadUrl = reloadPattern.search(htmlContent)
    if matchUrls:                     # This block still has some strange issues..... 
       downloadUrlsDict['imageUrl'] = matchUrls.group(1)

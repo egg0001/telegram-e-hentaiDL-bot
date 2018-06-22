@@ -11,8 +11,7 @@ import json
 from ast import literal_eval
 from queue import Queue
 import time 
-import random 
-import re
+import random
 from threading import Thread
 
 
@@ -27,17 +26,18 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
    zipErrorDict = {} # Contain all the error message of zip function.
-#    if dlopt.Zip == True:
-#       threadQ = Queue() #Contain the zip threads 
-#       stateQ = Queue()  # Contin the report of zip threads 
-#       tc = Thread(target=thread_containor, 
-#                   name='tc', 
-#                   kwargs={'threadQ': threadQ},
-#                   daemon=True)
-#       tc.start()
-#    else:
-#       threadQ = None
-#       stateQ = None
+   if dlopt.Zip == True:
+      zipThreadQ = Queue() #Contain the zip threads 
+      zipStateQ = Queue()  # Contin the report of zip threads 
+      tc = Thread(target=thread_containor, 
+                  name='tc', 
+                  kwargs={'threadQ': zipThreadQ,
+                           'logger': logger},
+                  daemon=True)
+      tc.start()
+   else:
+      zipThreadQ = None
+      zipStateQ = None
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhentai'].append(url)
@@ -103,8 +103,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            title=title,
                                                            dlopt=dlopt,
                                                            category=category,
-                                                      #      threadQ=threadQ,
-                                                      #      stateQ=stateQ
+                                                           zipThreadQ=zipThreadQ,
+                                                           zipStateQ=zipStateQ
                                                            )
                            }
                            )
@@ -114,13 +114,13 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
       tempList = []
    outDict.update({'resultDict': resultDict})
    outDict.update(errorMessage)
-#    threadQ.join()
-#    while not stateQ.empty():
-#       temp = stateQ.get()
-#       zipErrorDict.update(temp)
-#    if zipErrorDict != {}:
-#       for zED in zipErrorDict:
-#          resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
+   zipThreadQ.join()
+   while not zipStateQ.empty():
+      temp = zipStateQ.get()
+      zipErrorDict.update(temp)
+   if zipErrorDict != {}:
+      for zED in zipErrorDict:
+         resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
    download.userfiledetect(path=config.path)
    with open("{0}.mangalog".format(config.path), 'r') as fo:
       mangaInfoDict = json.load(fo)
@@ -156,19 +156,19 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
    return usefulCookiesDict
 
 
-def thread_containor(threadQ):
+def thread_containor(threadQ, logger):
    # Put any threads to this function and it would run separately.
    # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
    # Or the program would stock.
    threadCounter = 0
+   logger.info('Thread containor of zip function initiated.')
    while True:
       t = threadQ.get()
       t.start()
       threadCounter += 1
       if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
          t.join() 
-         threadCounter = 0
-      t.join()       
+         threadCounter = 0 
 
 
 def sessiongenfunc(dloptDict, logger, hasEXH):
