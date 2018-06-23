@@ -185,19 +185,6 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
                         'zipStateQ': zipStateQ,
                         'zipThreadQ': zipThreadQ})
       zipThreadQ.put(t)
-      # zipErrorDict = zipmangadir(url=url, 
-      #                            path=dlPath, 
-      #                            title=title, 
-      #                            removeDir=dlopt.removeDir, 
-      #                            logger=logger,
-      #                            zipStateQ=zipStateQ,
-      #                            zipThreadQ=zipThreadQ)
-      # if zipErrorDict.get(title):
-      #    if resultDict['dlErrorDict'].get('zipError'):
-      #       resultDict['dlErrorDict']['zipError'].update(zipErrorDict['zipError'])
-      #    else: 
-      #       resultDict['dlErrorDict'].update({'zipError': zipErrorDict['zipError']}) 
-
 
    return resultDict
 

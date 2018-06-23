@@ -183,8 +183,8 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
    if config.proxy:
       # proxypattern = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d{1,5})")
       # proxy = proxypattern.search(random.choice(config.proxy)).group(1)
-      if config.proxy[0].find('socks5') != -1:
-         proxy = config.proxy[0].replace('socks5', 'socks5h')
+      if config.proxy[0].find('socks5://') != -1:
+         proxy = config.proxy[0].replace('socks5://', 'socks5h://')
       else:
          proxy = config.proxy[0]
       proxies = {"http": proxy, "https": proxy,}
