@@ -79,7 +79,7 @@ def cookiesfiledetect(foresDelete=False):
    return cookiesInfoDict
 
 
-def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=None, zipThreadQ=None, zipStateQ=None):
+def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, category=None, zipThreadQ=None, zipStateQ=None):
    if category == None:
       dlPath = path
    else:
@@ -99,7 +99,8 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
    htmlContentList = accesstoehentai(method='get', 
                                      mangasession=mangasession, 
                                      stop=stop, 
-                                     urls=[url]
+                                     urls=[url],
+                                     logger=logger
                                     )
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
@@ -126,7 +127,8 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
             htmlContentList = accesstoehentai(method='get', 
                                               mangasession=mangasession, 
                                               stop=stop, 
-                                              urls=[pageContentDict['nextPage']]
+                                              urls=[pageContentDict['nextPage']],
+                                              logger=logger
                                              )
             try:
                pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
@@ -144,8 +146,13 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
       if tempErrDict[url]:
          resultDict['dlErrorDict'].update(tempErrDict[url])
       filesList = [f for f in os.listdir('{0}{1}/'.format(dlPath, title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, title), f))] 
+      # print (filesList)
+      if '.mangaLog' in filesList:
+         filesList.remove('.mangaLog')
+      # print (filesList)
       filesList.sort()
       previewImage = filesList[0]
+
       previewImageFormat = (previewImage.split('.'))[-1]
       if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
          previewImageFormat = 'jpeg'
@@ -165,10 +172,12 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, category=Non
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
 #    print (path)
+   with open(('{0}{1}/.mangaLog'.format(dlPath, title)), 'w') as fo:
+      json.dump({url: mangaData}, fo)
    if resultDict['dlErrorDict']:
       with open(('{0}{1}/errorLog'.format(dlPath, title)), 'w') as fo:
          json.dump(resultDict['dlErrorDict'], fo)
-   print (resultDict['dlErrorDict'])
+#    print (resultDict['dlErrorDict'])
    criticalDownloadError = False
    for u in resultDict['dlErrorDict']:
       if resultDict['dlErrorDict'][u].get('Download error'):
@@ -202,7 +211,8 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
          htmlContentList = accesstoehentai(method="get", 
                                            mangasession=mangasession,
                                            stop=dloptgenerate.Sleep('1-2'),
-                                           urls=[mangaUrl])
+                                           urls=[mangaUrl],
+                                           logger=logger)
          if htmlContentList == []:
             raise htmlPageError('Empty html response.')
          downloadUrlsDict = datafilter.mangadlhtmlfilter(htmlContent = htmlContentList[0], url=url)
@@ -280,7 +290,7 @@ def zipmangadir(url, path, title, removeDir, logger, zipStateQ=None, zipThreadQ=
       pass
    return zipErrorDict
 
-def accesstoehentai(method, mangasession, stop, urls=None):
+def accesstoehentai(method, mangasession, stop, logger, urls=None):
 #    print (urls)
    resultList = []
    if method == 'get':
@@ -321,7 +331,7 @@ def accesstoehentai(method, mangasession, stop, urls=None):
             err = 0
             break
       else:
-         print ("network issue")
+         logger.error('Network error reached limit, discard.')
          err = 0
    return resultList
 

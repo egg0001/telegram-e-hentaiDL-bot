@@ -70,7 +70,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
          tempList.extend(download.accesstoehentai(method='post', 
                                                   mangasession=mangasession,
                                                   stop=apiStop,
-                                                  urls=usl
+                                                  urls=usl,
+                                                  logger=logger
                                                  ) 
                         )
       for tL in tempList:
@@ -86,7 +87,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
          if config.useEntitle == False and tempDict[url]['jptitle']:
             title = tempDict[url]['jptitle'][0]
             
-         elif tempDict[url]['jptitle'] == None or config.useEntitle == True:
+         else:
             # print (tempDict[url]['entitle'])
             title = tempDict[url]['entitle'][0]
          if tempDict[url]["category"] != []:
@@ -102,6 +103,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            logger=logger,
                                                            title=title,
                                                            dlopt=dlopt,
+                                                           mangaData=tempDict[url],
                                                            category=category,
                                                            zipThreadQ=zipThreadQ,
                                                            zipStateQ=zipStateQ
@@ -114,10 +116,11 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
       tempList = []
    outDict.update({'resultDict': resultDict})
    outDict.update(errorMessage)
-   zipThreadQ.join()
-   while not zipStateQ.empty():
-      temp = zipStateQ.get()
-      zipErrorDict.update(temp)
+   if zipThreadQ and zipStateQ:
+      zipThreadQ.join()
+      while not zipStateQ.empty():
+         temp = zipStateQ.get()
+         zipErrorDict.update(temp)
    if zipErrorDict != {}:
       for zED in zipErrorDict:
          resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
