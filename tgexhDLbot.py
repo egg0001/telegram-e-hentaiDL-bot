@@ -55,7 +55,7 @@ def state(bot, update, user_data, chat_data):
                     )
    return ConversationHandler.END
       
-def thread_containor(threadQ):
+def threadContainor(threadQ, threadLimit=1):
    # Put any threads to this function and it would run separately.
    # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
    # Or the program would stock.
@@ -64,12 +64,12 @@ def thread_containor(threadQ):
       t = threadQ.get()
       t.start()
       threadCounter += 1
-      if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
+      if threadCounter == threadLimit:  # This condition limit the amount of threads running simultaneously.
          t.join() 
          threadCounter = 0
 
 def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
-   outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
+   outDict = ehdownloader(urlResultList=urlResultList, logger=logger, threadContainor=threadContainor)
    logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
       messageDict = {"messageContent": [outDict['cookiesError']],
@@ -176,7 +176,7 @@ def main():
    dp.add_handler(messageHandler)
    dp.add_error_handler(error)
    updater.start_polling(poll_interval=1.0, timeout=1.0)
-   tc = Thread(target=thread_containor, 
+   tc = Thread(target=threadContainor, 
                name='tc', 
                kwargs={'threadQ': threadQ},
                daemon=True)

@@ -34,11 +34,11 @@ def urlanalysisdirect(user_data, logger, chat_data=None):
    return outDict
 
 
-def ehdownloader(urlResultList, logger):
+def ehdownloader(urlResultList, logger, threadContainor):
 
    logger.info('Download function initiated.')
    dloptDict = dloptgenerate.dloptgenerate(urls=urlResultList, logger=logger)
-   outDict = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger)
+   outDict = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger, threadContainor=threadContainor)
    logger.info("Download completed.")
 
    return outDict

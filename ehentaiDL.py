@@ -16,7 +16,7 @@ from threading import Thread
 
 
 
-def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
+def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadContainor):
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
    urlsDict = {'e-hentai': [], 'exhentai': []}
    tempList = [] # store the API result from e-h/exh
@@ -29,12 +29,13 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    if dlopt.Zip == True:
       zipThreadQ = Queue() #Contain the zip threads 
       zipStateQ = Queue()  # Contin the report of zip threads 
-      tc = Thread(target=thread_containor, 
-                  name='tc', 
-                  kwargs={'threadQ': zipThreadQ,
-                           'logger': logger},
-                  daemon=True)
-      tc.start()
+      zipContainor = Thread(target=threadContainor, 
+                            name='tc', 
+                            kwargs={'threadQ': zipThreadQ,
+                                    'logger': logger},
+                            daemon=True)
+      zipContainor.start()
+      logger.info('Thread containor of zip function initiated.')
    else:
       zipThreadQ = None
       zipStateQ = None
@@ -45,6 +46,9 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
          urlsDict['e-hentai'].append(url)
 #    print(urlsDict)
    for ulCategory in urlsDict:
+      if len(urlsDict[ulCategory]) == 0:
+         logger.info('Gallery(s) of {0} not found, continue.'.format(ulCategory))
+         continue 
       # print ('---------1--------------')
       if ulCategory == 'exhentai':
          exh = True
@@ -106,7 +110,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                            mangaData=tempDict[url],
                                                            category=category,
                                                            zipThreadQ=zipThreadQ,
-                                                           zipStateQ=zipStateQ
+                                                           zipStateQ=zipStateQ,
+                                                           threadContainor=threadContainor
                                                            )
                            }
                            )
@@ -159,21 +164,6 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
    return usefulCookiesDict
 
 
-def thread_containor(threadQ, logger):
-   # Put any threads to this function and it would run separately.
-   # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
-   # Or the program would stock.
-   threadCounter = 0
-   logger.info('Thread containor of zip function initiated.')
-   while True:
-      t = threadQ.get()
-      t.start()
-      threadCounter += 1
-      if threadCounter == 1:  # This condition limit the amount of threads running simultaneously.
-         t.join() 
-         threadCounter = 0 
-
-
 def sessiongenfunc(dloptDict, logger, hasEXH):
    mangasession = requests.Session()
 #    dlopt = dloptDict['dlopt']
@@ -208,22 +198,10 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
    else:
       eh = True
    mangasessionDict = {'mangasession': mangasession, 'eh': eh}
-#    else:
-#       requests.cookies.cookiejar_from_dict(dloptDict['dlopt'].userCookies)
-#       if dloptDict['dlopt'].canEXH == True:
-#          r = mangasession.get('https://exhentai.org/')
-#          eh = False
-#          print (r.text)
-#       else:
-#          mangasession.get('https://e-hentai.org/')
-#          eh = True
-#          print (r.text)
-#       mangasessionDict = {'mangasession': mangasession, 'eh': eh}
-#       time.sleep(2) # Prevent the anti-spider function
    return mangasessionDict
 
 
-def Spidercontrolasfunc(dloptDict, logger):
+def Spidercontrolasfunc(dloptDict, logger, threadContainor):
    hasEXH = False
    urls = dloptDict['dlopt'].urls
    errorMessage = dloptDict['errorMessage']
@@ -248,6 +226,7 @@ def Spidercontrolasfunc(dloptDict, logger):
                          errorMessage=dloptDict['errorMessage'],
                          dlopt=dloptDict['dlopt'],
                          logger=logger,
+                         threadContainor=threadContainor
                         )
    internalCookies = requests.utils.dict_from_cookiejar(mangasession.cookies)
    with open('./DLmodules/.cookiesinfo', 'r') as fo:

@@ -51,20 +51,7 @@ def userfiledetect(path):
                json.dump(userdict, fo)
          else:
             pass
-
-def thread_containor(threadQ):
-   # Put any threads to this function and it would run separately.
-   # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
-   # Or the program would stock.
-   threadCounter = 0
-   while True:
-      t = threadQ.get()
-      t.start()
-      threadCounter += 1
-      if threadCounter == config.dlThreadLimit:  # This condition limit the amount of threads running simultaneously.
-         t.join() 
-         threadCounter = 0
-      # t.join()       
+  
 
 def cookiesfiledetect(foresDelete=False):
    cookiesInfoDict = {'internalCookies': {},
@@ -79,18 +66,19 @@ def cookiesfiledetect(foresDelete=False):
    return cookiesInfoDict
 
 
-def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, category=None, zipThreadQ=None, zipStateQ=None):
+def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, threadContainor, category=None, zipThreadQ=None, zipStateQ=None):
    if category == None:
       dlPath = path
    else:
       dlPath = '{0}{1}/'.format(path, category)
-   threadQ = Queue() #Contain the zip threads 
-#    stateQ = Queue()  # Contin the report of zip threads 
-   tc = Thread(target=thread_containor, 
-               name='tc', 
-               kwargs={'threadQ': threadQ},
-               daemon=True)
-   tc.start()
+   downloadThreadQ = Queue() #Contain the image download threads 
+   q = Queue()  # Contin the report of download errors  
+   imageDownloadContainor = Thread(target=threadContainor, 
+                                   name='tc', 
+                                   kwargs={'threadQ': downloadThreadQ,
+                                           'threadLimit': config.dlThreadLimit},
+                                   daemon=True)
+   imageDownloadContainor.start()
    logger.info('Begin to download gallery {0}'.format(url))
    stop = dloptgenerate.Sleep(config.rest)
    tempErrDict ={url: {}}
@@ -106,7 +94,7 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, c
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
 
 #    threadCounter = 0
-   q = Queue()
+   
 #    print (pageContentDict)
    if pageContentDict.get('contentPages'):
       while pageContentDict['nextPage']:
@@ -119,10 +107,10 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, c
                                'path': '{0}{1}/'.format(dlPath, title),
                                'logger': logger,
                                'q': q,
-                               'threadQ': threadQ
+                               'threadQ': downloadThreadQ
                                }
                      )
-            threadQ.put(t)
+            downloadThreadQ.put(t)
          if pageContentDict['nextPage'] != -1:
             htmlContentList = accesstoehentai(method='get', 
                                               mangasession=mangasession, 
@@ -138,12 +126,14 @@ def mangadownloadctl(mangasession, url, path, logger, title, dlopt, mangaData, c
                break
          else:
             pageContentDict['nextPage'] = ''
-      threadQ.join()
+      downloadThreadQ.join()
       logger.info('{0} download completed.'.format(url))
       while not q.empty():
          temp = q.get()
          tempErrDict[url].update(temp)
-      if tempErrDict[url]:
+      if tempErrDict[url].get('Download error'):
+         logger.error("Encountered a critical error while downloading images of {0}. ".format(url) +
+                      "An error log would be deployed; and the zip function would be disabled.")
          resultDict['dlErrorDict'].update(tempErrDict[url])
       filesList = [f for f in os.listdir('{0}{1}/'.format(dlPath, title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, title), f))] 
       # print (filesList)
