@@ -5,6 +5,7 @@ import json
 import os
 import time
 import datetime
+import multiprocessing
 from threading import Thread
 from ast import literal_eval
 from telegram.ext import Updater
@@ -36,13 +37,13 @@ def state(bot, update, user_data, chat_data):
                     )
       Ttime = time.asctime(time.localtime()) 
       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
-      t = Thread(target=downloadfunc, 
-                 name=treadName, 
-                 kwargs={'bot':bot,
-                         'urlResultList': outDict['urlResultList'], 
-                         'logger': logger,
-                         "chat_id": update.message.chat_id,
-                         'threadQ': threadQ})
+      t = multiprocessing.Process(target=downloadfunc, 
+                                  name=treadName, 
+                                  kwargs={'bot':bot,
+                                  'urlResultList': outDict['urlResultList'], 
+                                  'logger': logger,
+                                  "chat_id": update.message.chat_id,
+                                   })
       threadQ.put(t)           
    else:
       messageDict = {"messageContent": outDict["outputTextList"],
@@ -68,7 +69,7 @@ def threadContainor(threadQ, threadLimit=1):
          t.join() 
          threadCounter = 0
 
-def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
+def downloadfunc(bot, urlResultList, logger, chat_id):
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger, threadContainor=threadContainor)
    logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
@@ -122,7 +123,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id, threadQ):
                            logger=logger
                           )             
    logger.info('All results has been sent.')
-   threadQ.task_done()
+#    processQ.task_done()
 
 
 def channelmessage(bot, messageDict, chat_id, logger):
@@ -169,10 +170,7 @@ def main():
    else:   
       updater = Updater(token=config.token)
    dp = updater.dispatcher
-
    messageHandler =  MessageHandler(Filters.text, state, pass_user_data=True, pass_chat_data=True)
-
-
    dp.add_handler(messageHandler)
    dp.add_error_handler(error)
    updater.start_polling(poll_interval=1.0, timeout=1.0)
@@ -184,14 +182,15 @@ def main():
    logger.info('Download thread containor initiated.')
    logger.info('Bot started.')
    updater.idle()
-   
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 threadQ = Queue()  # This queue object put the download function into the thread containor 
-                   # Using this thread containor wound also limits the download function thread
-                   # to prevent e-h to ban IP.
+                                   # Using this thread containor wound also limits the download function thread
+                                  # to prevent e-h to ban IP.
+# processQ = multiprocessing.Queue()
+
 (STATE) = range(1)
 
 if __name__ == '__main__':

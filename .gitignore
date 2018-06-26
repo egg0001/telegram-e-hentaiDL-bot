@@ -110,6 +110,7 @@ venv.bak/
 
 DLtest.py
 mangaDL/
+tempfiles/
 
 DLmodules/config.py
 rextest.py
