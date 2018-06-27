@@ -31,8 +31,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
       zipStateQ = Queue()  # Contin the report of zip threads 
       zipContainor = Thread(target=threadContainor, 
                             name='tc', 
-                            kwargs={'threadQ': zipThreadQ,
-                                    'logger': logger},
+                            kwargs={'threadQ': zipThreadQ,},
                             daemon=True)
       zipContainor.start()
       logger.info('Thread containor of zip function initiated.')

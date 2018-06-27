@@ -89,21 +89,15 @@ def mangadownloadctl(mangasession, url, path, logger, title,
    tempErrDict ={url: {}}
    resultDict = {'previewImageDict': {},
                  'dlErrorDict': {}}
-#    analysisPreviousDLResultDict = {'errorPageStr': '',
-#                                    'downloadIssue': True,
-#                                    'completeDownload': False,
-#                                    'previewImageDict': {}}
-
-
    analysisPreviousDLResultDict = analysisPreviousDL(dlPath=dlPath, url=url, title=title, 
                                                      mangaData=mangaData, logger=logger)
 
    htmlContentList = accesstoehentai(method='get', 
-                                        mangasession=mangasession, 
-                                        stop=stop, 
-                                        urls=[url],
-                                        logger=logger
-                                       )
+                                     mangasession=mangasession, 
+                                     stop=stop, 
+                                     urls=[url],
+                                     logger=logger
+                                    )
 
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])

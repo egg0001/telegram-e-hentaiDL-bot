@@ -19,6 +19,7 @@ from tgbotconvhandler import urlanalysisdirect
 from DLmodules import config
 from DLmodules import usermessage
 from queue import Queue
+import platform
 
 def state(bot, update, user_data, chat_data):
    user_data.update({'chat_id': update.message.chat_id,
@@ -37,14 +38,25 @@ def state(bot, update, user_data, chat_data):
                     )
       Ttime = time.asctime(time.localtime()) 
       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
-      t = multiprocessing.Process(target=downloadfunc, 
-                                  name=treadName, 
-                                  kwargs={'bot':bot,
-                                  'urlResultList': outDict['urlResultList'], 
-                                  'logger': logger,
-                                  "chat_id": update.message.chat_id,
-                                   })
-      threadQ.put(t)           
+      if platform.system() == 'Windows':
+         t = Thread(target=downloadfunc, 
+                    name=treadName, 
+                    kwargs={'bot':bot,
+                            'urlResultList': outDict['urlResultList'], 
+                            'logger': logger,
+                            "chat_id": update.message.chat_id,
+                            }
+                    )
+         threadQ.put(t)           
+      else:
+         t = multiprocessing.Process(target=downloadfunc, 
+                                     name=treadName, 
+                                     kwargs={'bot':bot,
+                                     'urlResultList': outDict['urlResultList'], 
+                                     'logger': logger,
+                                     "chat_id": update.message.chat_id,
+                                      })
+         threadQ.put(t)           
    else:
       messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
