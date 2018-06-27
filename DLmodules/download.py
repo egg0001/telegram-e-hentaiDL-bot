@@ -72,6 +72,7 @@ def mangadownloadctl(mangasession, url, path, logger, title,
    pageContentDict = {}  # Contains the current manga pages' information to download
    errorPageList = [] # Contains the error download pages in previous download
                       # Only useful while the program has detected some broken download history.
+   htmlContentList = [] # Contain ONE gallery index page
    if category == None:
       dlPath = path
    else:
@@ -162,6 +163,7 @@ def mangadownloadctl(mangasession, url, path, logger, title,
       if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
          previewImageFormat = 'jpeg'
       try:
+         bio = BytesIO()
          with open('{0}{1}/{2}'.format(dlPath, title, previewImage), 'rb') as fo:
             imageByte = fo.read()
          bio = BytesIO(imageByte) 
@@ -235,7 +237,9 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
          if previewimage.status_code == 200:
             contentTypeList = previewimage.headers['Content-Type'].split('/')
             with open("{0}{1}.{2}".format(path, filename, contentTypeList[1]), 'wb') as handle:
-               for chunk in previewimage:
+               for chunk in previewimage.iter_content(chunk_size=4096):
+                  if not chunk:
+                     break
                   handle.write(chunk)
             if int(previewimage.headers['Content-Length']) != int(os.path.getsize("{0}{1}.{2}".format(path, filename, contentTypeList[1]))):
                raise jpegEOIError('Image is corrupted')
@@ -258,6 +262,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
       q.put(errorMessage)
    else:
       pass
+   del htmlContentList
    threadQ.task_done()
 
 

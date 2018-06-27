@@ -13,6 +13,7 @@ from queue import Queue
 import time 
 import random
 from threading import Thread
+import gc
 
 
 
@@ -237,6 +238,7 @@ def Spidercontrolasfunc(dloptDict, logger, threadContainor):
          cookiesInfoDict['canEXH'] = True
    with open('./DLmodules/.cookiesinfo', 'w+') as fo:
       json.dump(cookiesInfoDict, fo)
+   gc.collect()
    return outDict
 
 
