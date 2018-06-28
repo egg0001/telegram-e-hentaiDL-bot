@@ -15,15 +15,17 @@ import random
 from threading import Thread
 import gc
 
-
+class mangaInfo():
+   __slots__ = ('url', 'category', 'title', 'mangaData', 'previewImage', 'dlErrorDict', 'exh')
 
 def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadContainor):
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
    urlsDict = {'e-hentai': [], 'exhentai': []}
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
+   mangaObjList = [] # Store the mangaInfo objects.
    toMangaLogDict = {} # Transport the manga attributes to .mangalog file. 
-   resultDict = {} # Contain the download result
+   resultObjList = [] # Contain the download result objects
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
    zipErrorDict = {} # Contain all the error message of zip function.
@@ -49,7 +51,6 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
       if len(urlsDict[ulCategory]) == 0:
          logger.info('Gallery(s) of {0} not found, continue.'.format(ulCategory))
          continue 
-      # print ('---------1--------------')
       if ulCategory == 'exhentai':
          exh = True
       else:
@@ -67,9 +68,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
             urlSeparateList.append(subUrlList)
             subUrlList = []
       apiStop = dloptgenerate.Sleep('2-3')
-      # print (urlSeparateList)
       for usl in urlSeparateList:
-      #    print ('-------------------2----------------')
       #    print (usl)
          tempList.extend(download.accesstoehentai(method='post', 
                                                   mangasession=mangasession,
@@ -85,50 +84,50 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
-      logger.info("Retrieved {0} gallery(s)' information in {1}.".format(len(tempDict), ulCategory))
       for url in tempDict:
-      #    print ('----------------3---------------') 
+         manga = mangaInfo()
+         manga.url = url 
+         manga.mangaData = tempDict[url]
+         manga.exh = exh
+         if tempDict[url]["category"]:
+            manga.category = tempDict[url]["category"][0]
+         else:
+            manga.category = None
          if config.useEntitle == False and tempDict[url]['jptitle']:
-            title = tempDict[url]['jptitle'][0]
-            
+            manga.title = tempDict[url]['jptitle'][0]
          else:
-            # print (tempDict[url]['entitle'])
-            title = tempDict[url]['entitle'][0]
-         if tempDict[url]["category"] != []:
-            category = tempDict[url]["category"][0]
-        
-      #       dlpath = '{0}{1}/{2}/'.format(path, tempDict[url]["category"][0], title)
-         else:
-            category = None
-      #       dlpath = path + '{0}/'.format(title) 
-         resultDict.update({url: download.mangadownloadctl(mangasession=mangasession, 
-                                                           url=url, 
-                                                           path=path,
-                                                           logger=logger,
-                                                           title=title,
-                                                           dlopt=dlopt,
-                                                           mangaData=tempDict[url],
-                                                           category=category,
-                                                           zipThreadQ=zipThreadQ,
-                                                           zipStateQ=zipStateQ,
-                                                           threadContainor=threadContainor
-                                                           )
-                           }
-                           )
-      toMangaLogDict.update(tempDict)
+            manga.title = tempDict[url]['entitle'][0]
+         mangaObjList.append(manga)
+      logger.info("Retrieved {0} gallery(s)' information in {1}.".format(len(mangaObjList), ulCategory))
+      for manga in mangaObjList:
+         resultObjList.append(download.mangadownloadctl(mangasession=mangasession, 
+                                                        path=path,
+                                                        logger=logger,
+                                                        manga=manga,
+                                                        dlopt=dlopt,
+                                                        zipThreadQ=zipThreadQ,
+                                                        zipStateQ=zipStateQ,
+                                                        threadContainor=threadContainor
+                                                      )
+                             )
+      toMangaLogDict.update(manga.mangaData)
       urlSeparateList = [] 
       tempDict = {}   # Reset all the loop relating variables  
       tempList = []
-   outDict.update({'resultDict': resultDict})
+      mangaObjList = []
+   outDict.update({'resultObjList': resultObjList})
    outDict.update(errorMessage)
    if zipThreadQ and zipStateQ:
       zipThreadQ.join()
       while not zipStateQ.empty():
          temp = zipStateQ.get()
          zipErrorDict.update(temp)
-   if zipErrorDict != {}:
-      for zED in zipErrorDict:
-         resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
+   if zipErrorDict:
+      for manga in resultObjList:
+         if zipErrorDict.get(manga.url):
+            manga.dlErrorDict.update(zipErrorDict[manga.url])
+      # for zED in zipErrorDict:
+      #    resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
    download.userfiledetect(path=config.path)
    with open("{0}.mangalog".format(config.path), 'r') as fo:
       mangaInfoDict = json.load(fo)
@@ -174,8 +173,6 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
    else:
       mangasession.headers.update({{"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",}})
    if config.proxy:
-      # proxypattern = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\:\d{1,5})")
-      # proxy = proxypattern.search(random.choice(config.proxy)).group(1)
       if config.proxy[0].find('socks5://') != -1:
          proxy = config.proxy[0].replace('socks5://', 'socks5h://')
       else:
@@ -217,9 +214,6 @@ def Spidercontrolasfunc(dloptDict, logger, threadContainor):
       for url in urls:
          if url.find('exhentai') != -1:
            urls.remove(url)
-
-
-
    outDict = mangaspider(urls=urls, 
                          mangasession=mangasession,
                          path=dloptDict['dlopt'].path,

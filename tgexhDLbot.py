@@ -104,28 +104,28 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                      chat_id=chat_id,
                      logger=logger
                     )
-   for result in outDict['resultDict']:
-      if outDict['resultDict'][result]['previewImageDict']: 
-         for image in outDict['resultDict'][result]['previewImageDict']:
-            messageDict = {"messageContent": [outDict['resultDict'][result]['previewImageDict'][image]],
-                           'messageCate': 'photo',
+   for manga in outDict['resultObjList']:
+      if manga.previewImage:
+
+         messageDict = {"messageContent": [manga.previewImage],
+                        'messageCate': 'photo',
                           }
-            channelmessage(bot=bot, 
-                           messageDict=messageDict, 
-                           chat_id=chat_id,
-                           logger=logger
-                          )        
-            messageDict = {"messageContent": [image],
-                           'messageCate': 'message',
-                          }
-            channelmessage(bot=bot, 
-                           messageDict=messageDict, 
-                           chat_id=chat_id,
-                           logger=logger
-                          )       
-      if outDict['resultDict'][result]['dlErrorDict']:
-         for error in outDict['resultDict'][result]['dlErrorDict']:
-            messageDict = {"messageContent": [error,  outDict['resultDict'][result]['dlErrorDict'][error]],
+         channelmessage(bot=bot, 
+                        messageDict=messageDict, 
+                        chat_id=chat_id,
+                        logger=logger
+                        )        
+      messageDict = {"messageContent": [manga.title],
+                     'messageCate': 'message',
+                    }
+      channelmessage(bot=bot, 
+                     messageDict=messageDict, 
+                     chat_id=chat_id,
+                     logger=logger
+                     )       
+      if manga.dlErrorDict:
+         for error in manga.dlErrorDict:
+            messageDict = {"messageContent": [error,  manga.dlErrorDict[error]],
                            'messageCate': 'message',
                           }
             channelmessage(bot=bot, 
@@ -174,7 +174,7 @@ def cancel(bot, update, user_data, chat_data):
 def error(bot, update, error):
    logger.warning('Update "%s" caused error "%s"', update, error)
 
-
+ 
 def main(): 
    if config.proxy:
       updater = Updater(token=config.token, request_kwargs={'proxy_url': config.proxy[0]})

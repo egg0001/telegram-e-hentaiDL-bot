@@ -62,17 +62,19 @@ def cookiesfiledetect(foresDelete=False):
          json.dump(cookiesInfoDict, fo)
    return cookiesInfoDict
 
-def mangadownloadctl(mangasession, url, path, logger, title, 
-                     dlopt, mangaData, threadContainor, 
-                     category=None, zipThreadQ=None, zipStateQ=None):
+def mangadownloadctl(mangasession, path, logger, manga,
+                     dlopt, threadContainor, 
+                     zipThreadQ=None, zipStateQ=None):
    pageContentDict = {}  # Contains the current manga pages' information to download
    errorPageList = [] # Contains the error download pages in previous download
                       # Only useful while the program has detected some broken download history.
    htmlContentList = [] # Contain ONE gallery index page
-   if category == None:
+   dlErrorDict = {}  # Contains all the critical error message while downloading images
+   manga.dlErrorDict = None  # Default variable of this attribute
+   if manga.category == None:
       dlPath = path
    else:
-      dlPath = '{0}{1}/'.format(path, category)
+      dlPath = '{0}{1}/'.format(path, manga.category)
    downloadThreadQ = Queue() #Contain the image download threads 
    q = Queue()  # Contin the report of download errors  
    imageDownloadContainor = Thread(target=threadContainor, 
@@ -81,18 +83,18 @@ def mangadownloadctl(mangasession, url, path, logger, title,
                                            'threadLimit': config.dlThreadLimit},
                                    daemon=True)
    imageDownloadContainor.start()
-   logger.info('Begin to download gallery {0}'.format(url))
+   logger.info('Begin to download gallery {0}'.format(manga.url))
    stop = dloptgenerate.Sleep(config.rest)
-   tempErrDict ={url: {}}
-   resultDict = {'previewImageDict': {},
-                 'dlErrorDict': {}}
-   analysisPreviousDLResultDict = analysisPreviousDL(dlPath=dlPath, url=url, title=title, 
-                                                     mangaData=mangaData, logger=logger)
+   tempErrDict ={manga.url: {}}
+#    resultDict = {'previewImageDict': {},
+#                  'dlErrorDict': {}}
+   analysisPreviousDLResultDict = analysisPreviousDL(dlPath=dlPath, url=manga.url, title=manga.title, 
+                                                     mangaData=manga.mangaData, logger=logger)
 
    htmlContentList = accesstoehentai(method='get', 
                                      mangasession=mangasession, 
                                      stop=stop, 
-                                     urls=[url],
+                                     urls=[manga.url],
                                      logger=logger
                                     )
 
@@ -116,7 +118,7 @@ def mangadownloadctl(mangasession, url, path, logger, title,
                        kwargs={'url': mP[1],
                                'mangasession': mangasession,
                                'filename': mP[0],
-                               'path': '{0}{1}/'.format(dlPath, title),
+                               'path': '{0}{1}/'.format(dlPath, manga.title),
                                'logger': logger,
                                'q': q,
                                'threadQ': downloadThreadQ
@@ -133,21 +135,21 @@ def mangadownloadctl(mangasession, url, path, logger, title,
             try:
                pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
             except Exception as error:
-               logger.exception('Raise a crucial exception during analysis {0}'.format(url))
-               resultDict['dlErrorDict'].update({'nextPageError': {url: str(error)}})
+               logger.exception('Raise a crucial exception during analysis {0}'.format(manga.url))
+               dlErrorDict.update({'nextPageError': {manga.url: str(error)}})
                break
          else:
             pageContentDict['nextPage'] = ''
       downloadThreadQ.join()
-      logger.info('{0} download completed.'.format(url))
+      logger.info('{0} download completed.'.format(manga.url))
       while not q.empty():
          temp = q.get()
-         tempErrDict[url].update(temp)
-      if tempErrDict[url].get('Download error'):
-         logger.error("Encountered a critical error while downloading images of {0}. ".format(url) +
+         tempErrDict[manga.url].update(temp)
+      if tempErrDict[manga.url].get('Download error'):
+         logger.error("Encountered a critical error while downloading images of {0}. ".format(manga.url) +
                       "An error log would be deployed; and the zip function would be disabled.")
-         resultDict['dlErrorDict'].update(tempErrDict[url])
-      fileList = [f for f in os.listdir('{0}{1}/'.format(dlPath, title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, title), f))] 
+         dlErrorDict.update(tempErrDict[manga.url])
+      fileList = [f for f in os.listdir('{0}{1}/'.format(dlPath, manga.title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, manga.title), f))] 
       # print (fileList)
       if '.mangaLog' in fileList:
          fileList.remove('.mangaLog')
@@ -160,53 +162,49 @@ def mangadownloadctl(mangasession, url, path, logger, title,
          previewImageFormat = 'jpeg'
       try:
          bio = BytesIO()
-         with open('{0}{1}/{2}'.format(dlPath, title, previewImage), 'rb') as fo:
+         with open('{0}{1}/{2}'.format(dlPath, manga.title, previewImage), 'rb') as fo:
             imageByte = fo.read()
          bio = BytesIO(imageByte) 
-         bio.name = title
-         resultDict['previewImageDict'].update({title: bio})
+         bio.name = manga.title
+         manga.previewImage = bio
       except Exception as error:
-         logger.exception('Raise {0} while opening preview image of {1}'.format(error, title))
-         resultDict['dlErrorDict'].update({'openFileError': {url: str(error)}})
+         logger.exception('Raise {0} while opening preview image of {1}'.format(error, manga.url))
+         dlErrorDict.update({'openFileError': {manga.url: str(error)}})
+         manga.previewImage = None
    
    elif  analysisPreviousDLResultDict['completeDownload'] == True:
-      logger.info('{0} had been completed in previous process.'.format(url))
-      resultDict['previewImageDict'].update(analysisPreviousDLResultDict['previewImageDict'])
+      logger.info('{0} had been completed in previous process.'.format(manga.url))
+      manga.previewImage =(analysisPreviousDLResultDict['previewImageDict'])
    else:
-      logger.warning('{0} does not contain any page, maybe deleted'.format(url))
-      resultDict['dlErrorDict'].update({'galleryError': usermessage.galleryError})
+      logger.warning('{0} does not contain any page, maybe deleted'.format(manga.url))
+      dlErrorDict.update({'galleryError': usermessage.galleryError})
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
 #    print (path)
    if analysisPreviousDLResultDict['completeDownload'] == False:
-      with open(('{0}{1}/.mangaLog'.format(dlPath, title)), 'w') as fo:
-         json.dump({url: mangaData}, fo)
-   if resultDict['dlErrorDict']:
-      with open(('{0}{1}/errorLog'.format(dlPath, title)), 'w') as fo:
-         json.dump(resultDict['dlErrorDict'], fo)
-   elif os.path.isfile('{0}{1}/errorLog'.format(dlPath, title)):
-      os.remove('{0}{1}/errorLog'.format(dlPath, title))
-#    print (resultDict['dlErrorDict'])
-   criticalDownloadError = False
-   for u in resultDict['dlErrorDict']:
-      if resultDict['dlErrorDict'][u].get('Download error'):
-         criticalDownloadError = True
-         break
+      with open(('{0}{1}/.mangaLog'.format(dlPath, manga.title)), 'w') as fo:
+         json.dump({manga.url: manga.mangaData}, fo)
+   if dlErrorDict:
+      manga.dlErrorDict = dlErrorDict
+      with open(('{0}{1}/errorLog'.format(dlPath, manga.title)), 'w') as fo:
+         json.dump(dlErrorDict, fo)
+   elif os.path.isfile('{0}{1}/errorLog'.format(dlPath, manga.title)):
+      os.remove('{0}{1}/errorLog'.format(dlPath, manga.title))
    if (dlopt.Zip == True and analysisPreviousDLResultDict['completeDownload'] == False 
-       and (criticalDownloadError == False or dlopt.forceZip == True)):
+       and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
       t = Thread(target=zipmangadir, 
-                 name="{0}.zip".format(title),
-                 kwargs={'url': url,
+                 name="{0}.zip".format(manga.title),
+                 kwargs={'url': manga.url,
                         'path': dlPath,
-                        'title': title,
+                        'title': manga.title,
                         'removeDir': dlopt.removeDir,
                         'logger': logger,
                         'zipStateQ': zipStateQ,
                         'zipThreadQ': zipThreadQ})
       zipThreadQ.put(t)
 
-   return resultDict
+   return manga
 
 def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    logger.info('Page {0} download start'.format(filename))
@@ -254,7 +252,7 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
       errorMessage[url].update({'Download error': 'Reached maximum retry counts while download this page.'})
-   if errorMessage[url]:  
+   if errorMessage[url]:
       q.put(errorMessage)
    else:
       pass
