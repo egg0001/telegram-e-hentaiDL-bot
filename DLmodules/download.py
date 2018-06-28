@@ -1,20 +1,16 @@
 #!/usr/bin/python3
 
-# The download function also needs a thread containor 
-# Or it would raise some strange errors 
-
 import os
 import requests
 import time
 import json
-from PIL import Image
 import re
 import random
 from . import config
 from . import dloptgenerate
 from . import datafilter
 from . import usermessage
-from . import regx
+from . import regx 
 from threading import Thread
 from queue import Queue
 from io import BytesIO

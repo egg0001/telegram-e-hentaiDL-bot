@@ -7,13 +7,10 @@ import time
 import datetime
 from multiprocessing import Process
 from threading import Thread
-from ast import literal_eval
 from telegram.ext import Updater
-from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler 
 from telegram.ext import Filters
 from telegram.ext import ConversationHandler
-# from tgbotconvhandler import messageanalyze
 from tgbotconvhandler import ehdownloader
 from tgbotconvhandler import urlanalysisdirect
 from DLmodules import config
@@ -47,7 +44,8 @@ def state(bot, update, user_data, chat_data):
                             'logger': logger,
                             "chat_id": update.message.chat_id,
                             }
-                    )        
+                    )  
+         threadQ.put(t)      
       else:
          t = Process(target=downloadfunc, 
                      name=treadName, 
@@ -56,7 +54,7 @@ def state(bot, update, user_data, chat_data):
                              'logger': logger,
                              "chat_id": update.message.chat_id,
                             })
-      threadQ.put(t)           
+         threadQ.put(t)           
    else:
       messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
