@@ -12,6 +12,7 @@ from . import datafilter
 from . import usermessage
 from . import regx 
 from threading import Thread
+from threading import enumerate
 from queue import Queue
 from io import BytesIO
 from shutil import make_archive
@@ -63,8 +64,7 @@ def cookiesfiledetect(foresDelete=False):
    return cookiesInfoDict
 
 def mangadownloadctl(mangasession, path, logger, manga,
-                     dlopt, threadContainor, 
-                     zipThreadQ=None, zipStateQ=None):
+                     dlopt, zipThreadQ=None, zipStateQ=None):
    pageContentDict = {}  # Contains the current manga pages' information to download
    errorPageList = [] # Contains the error download pages in previous download
                       # Only useful while the program has detected some broken download history.
@@ -77,7 +77,7 @@ def mangadownloadctl(mangasession, path, logger, manga,
       dlPath = '{0}{1}/'.format(path, manga.category)
    downloadThreadQ = Queue() #Contain the image download threads 
    q = Queue()  # Contin the report of download errors  
-   imageDownloadContainor = Thread(target=threadContainor, 
+   imageDownloadContainor = Thread(target=downloadThreadContainor, 
                                    name='tc', 
                                    kwargs={'threadQ': downloadThreadQ,
                                            'threadLimit': config.dlThreadLimit},
@@ -114,7 +114,7 @@ def mangadownloadctl(mangasession, path, logger, manga,
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
                   continue
             t = Thread(target=mangadownload, 
-                       name=mP[0],
+                       name='imageDownloadThread',
                        kwargs={'url': mP[1],
                                'mangasession': mangasession,
                                'filename': mP[0],
@@ -325,6 +325,14 @@ def analysisPreviousDL(dlPath, url, title, mangaData, logger):
                                       'previewImageDict': {}}
 
    return analysisPreviousDLResultDict
+
+def downloadThreadContainor(threadQ, threadLimit, threadName='imageDownloadThread'):
+   while True:
+      while sum(t.name =='imageDownloadThread' for t in enumerate())>= threadLimit:
+         continue
+      else:
+         t = threadQ.get()
+         t.start()
 
 
 #-------------Several personalized Exceptions----------------------

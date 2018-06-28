@@ -16,11 +16,14 @@ from threading import Thread
 import gc
 
 class mangaInfo():
+   '''This class and each of its objects contain the information of every gallery'''
    __slots__ = ('url', 'category', 'title', 'mangaData', 'previewImage', 'dlErrorDict', 'exh')
 
 def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadContainor):
+   '''This function processes all the requested urls(galleries), including retriving their information,
+      and sends every of them to the partical download function.'''
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
-   urlsDict = {'e-hentai': [], 'exhentai': []}
+   urlsDict = {'e-hentai': [], 'exhentai': []}  # Separating galleries urls into two lists.
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
    mangaObjList = [] # Store the mangaInfo objects.
@@ -36,7 +39,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
                             name='tc', 
                             kwargs={'threadQ': zipThreadQ,},
                             daemon=True)
-      zipContainor.start()
+      zipContainor.start()   
+      #This daemon thread would retrive and deal with all the zip archiving threads.
       logger.info('Thread containor of zip function initiated.')
    else:
       zipThreadQ = None
@@ -47,7 +51,9 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
       else:
          urlsDict['e-hentai'].append(url)
 #    print(urlsDict)
-   for ulCategory in urlsDict:
+   for ulCategory in urlsDict:  
+      # This block deal with e-hentai and exhentai's galleries
+      # separately.                          
       if len(urlsDict[ulCategory]) == 0:
          logger.info('Gallery(s) of {0} not found, continue.'.format(ulCategory))
          continue 
@@ -57,11 +63,13 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
          exh = False
       subUrlList = []
       internalCounter = 0
-      if urlsDict[ulCategory]:
+      if urlsDict[ulCategory]:  
          for url in urlsDict[ulCategory]:
             subUrlList.append(url)
             internalCounter += 1
             if (internalCounter %24 ) == 0:
+               # The limitation of e-h's api is 25 galleries in one request and
+               # This block separates the urls' list to fullfil this requirement.
                urlSeparateList.append(subUrlList)
                subUrlList = []
          if subUrlList:
@@ -77,6 +85,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
                                                   logger=logger
                                                  ) 
                         )
+         # This list contains all the galleries' information retrived from e-h's api
+         # Then it removes all the error results. 
       for tL in tempList:
          tLKey = tL.keys()
          if 'error' in tLKey:
@@ -84,6 +94,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
+      # Re-classify the information and prepare to generate the objects.
       for url in tempDict:
          manga = mangaInfo()
          manga.url = url 
@@ -107,9 +118,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
                                                         dlopt=dlopt,
                                                         zipThreadQ=zipThreadQ,
                                                         zipStateQ=zipStateQ,
-                                                        threadContainor=threadContainor
                                                       )
-                             )
+                             ) 
       toMangaLogDict.update(manga.mangaData)
       urlSeparateList = [] 
       tempDict = {}   # Reset all the loop relating variables  
@@ -165,8 +175,6 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
 
 def sessiongenfunc(dloptDict, logger, hasEXH):
    mangasession = requests.Session()
-#    dlopt = dloptDict['dlopt']
-   
    usefulCookiesDict = {'exh': False}
    if config.headers:
       mangasession.headers.update(random.choice(config.headers))
@@ -181,7 +189,6 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
       mangasession.proxies = proxies
    else:
       pass
-#    if dloptDict['dlopt'].changeCookies == True:
    if dloptDict['dlopt'].userCookies and hasEXH == True:
       usefulCookiesDict = exhcookiestest(mangasessionTest=mangasession, 
                                          cookies=dloptDict['dlopt'].userCookies, 
@@ -199,22 +206,27 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
 
 
 def Spidercontrolasfunc(dloptDict, logger, threadContainor):
-   hasEXH = False
-   urls = dloptDict['dlopt'].urls
-   errorMessage = dloptDict['errorMessage']
+   '''This function is the entry and the basic plot of the whole download process.'''
+   hasEXH = False  
+   # This bool variable determin whether the request contains url(s)
+   # to exhentai requiring some special methods to view.
    for url in dloptDict['dlopt'].urls:
       if url.find('exhentai') != -1:
          hasEXH = True
          break
    mangasessionDict = sessiongenfunc(dloptDict=dloptDict, logger=logger, hasEXH=hasEXH)
+   # This mangasessionDict contains a requests' session object having basic information to 
+   # access e-hentai/exhentai. It also contains a bool value to determin whether user's cookies could
+   # access exhentai.
    mangasession = mangasessionDict['mangasession']
 #    print (mangasessionDict)
-   if mangasessionDict['eh'] == True and hasEXH == True:
-      errorMessage.update({'cookiesError': usermessage.usercookiesEXHError})
-      for url in urls:
+   if mangasessionDict['eh'] == True and hasEXH == True:   
+      # If user's cookies could not access exhentai, the program would delete exh's url(s).                                                     
+      dloptDict['errorMessage'].update({'cookiesError': usermessage.usercookiesEXHError})
+      for url in dloptDict['dlopt'].urls:
          if url.find('exhentai') != -1:
-           urls.remove(url)
-   outDict = mangaspider(urls=urls, 
+           dloptDict['dlopt'].urls.remove(url)
+   outDict = mangaspider(urls=dloptDict['dlopt'].urls, 
                          mangasession=mangasession,
                          path=dloptDict['dlopt'].path,
                          errorMessage=dloptDict['errorMessage'],
@@ -222,8 +234,11 @@ def Spidercontrolasfunc(dloptDict, logger, threadContainor):
                          logger=logger,
                          threadContainor=threadContainor
                         )
+   #This outDict contains the download results for all the url(s) including images and
+   # titles of the gallery(s) and the error reports it encounters while downloading.
    internalCookies = requests.utils.dict_from_cookiejar(mangasession.cookies)
-   with open('./DLmodules/.cookiesinfo', 'r') as fo:
+   with open('./DLmodules/.cookiesinfo', 'r') as fo:  
+      # After download, it stores the updated cookies for later use.
       cookiesInfoDict = json.load(fo)
       cookiesInfoDict['internalCookies'] = internalCookies
       if mangasessionDict['eh'] == True:

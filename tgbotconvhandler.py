@@ -11,6 +11,8 @@ from DLmodules import regx
 from ehentaiDL import Spidercontrolasfunc
 
 def urlanalysisdirect(user_data, logger, chat_data=None):
+   ''' This function identifies the user's  identity and exploit regx to analyze user's 
+       request (gallery(s)' urls) and pass the result to the bot's major function.'''
    
    outDict = {'identified': False, 'urlComfirm': False, 'outputTextList': [], 'urlResultList': []}
    if user_data['actualusername'] == config.telegramUsername:
@@ -35,11 +37,13 @@ def urlanalysisdirect(user_data, logger, chat_data=None):
 
 
 def ehdownloader(urlResultList, logger, threadContainor):
-
+   ''' A simple function transports  the download relating variable to the actual download function.'''
    logger.info('Download function initiated.')
-   dloptDict = dloptgenerate.dloptgenerate(urls=urlResultList, logger=logger)
+   dloptDict = dloptgenerate.dloptgenerate(urls=urlResultList, logger=logger) 
+   # This dloptDict contains an object storing the download variable and the error messages 
+   # while generating this object.
    outDict = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger, threadContainor=threadContainor)
+   # This is the entry of the download control function.
    logger.info("Download completed.")
-
    return outDict
 

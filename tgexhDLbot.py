@@ -20,6 +20,8 @@ import platform
 
 
 def state(bot, update, user_data, chat_data):
+   '''The major function of this bot. It would receive user's message and initiate 
+      a download thread/process.'''
    user_data.update({'chat_id': update.message.chat_id,
                      'actualusername': str(update.message.from_user.username),
                      'userMessage': update.message.text})
@@ -36,7 +38,8 @@ def state(bot, update, user_data, chat_data):
                     )
       Ttime = time.asctime(time.localtime()) 
       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
-      if platform.system() == 'Windows':
+      if platform.system() == 'Windows':   # Windows does not allow the daemon thread to initiate a 
+                                           # new child process. 
          t = Thread(target=downloadfunc, 
                     name=treadName, 
                     kwargs={'bot':bot,
@@ -67,6 +70,9 @@ def state(bot, update, user_data, chat_data):
    return ConversationHandler.END
       
 def threadContainor(threadQ, threadLimit=1):
+   '''A simple thread/process containor to limit the amount of the download process thus 
+      prevent e-hentai bans user's IP. The download function would also use this to limit
+      the zip archive thread.'''
    # Put any threads to this function and it would run separately.
    # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
    # Or the program would stock.
@@ -81,6 +87,8 @@ def threadContainor(threadQ, threadLimit=1):
       
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
+   ''' The bot's major function would call this download and result 
+       sending function to deal with user's requests.'''
    outDict = ehdownloader(urlResultList=urlResultList, logger=logger, threadContainor=threadContainor)
    logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
@@ -134,12 +142,11 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                            logger=logger
                           )             
    logger.info('All results has been sent.')
-#    processQ.task_done()
 
 
 def channelmessage(bot, messageDict, chat_id, logger):
-#    logger.info("Began to send sth...")
-#    print (messageDict)
+   ''' All the functions containing user interaction would use this function to send messand to user.
+       It has the basic error and retry ability. '''
    messageContent = messageDict["messageContent"]
    for mC in messageContent:
       err = 0
@@ -164,6 +171,7 @@ def channelmessage(bot, messageDict, chat_id, logger):
          err = 0
 
 def cancel(bot, update, user_data, chat_data):  
+   '''Bot's cancel function, useless.'''
    update.message.reply_text(text=usermessage.UserCancel) 
    logger.info("User %s has canceled the process.", str(update.message.from_user.username))
    user_data.clear()
@@ -172,10 +180,12 @@ def cancel(bot, update, user_data, chat_data):
    return ConversationHandler.END
 
 def error(bot, update, error):
+   '''Bot's error collecting function, may also be useless. '''
    logger.warning('Update "%s" caused error "%s"', update, error)
 
  
-def main(): 
+def main():
+   '''The bot's initiation sequence.'''
    if config.proxy:
       updater = Updater(token=config.token, request_kwargs={'proxy_url': config.proxy[0]})
    else:   
@@ -188,7 +198,10 @@ def main():
    tc = Thread(target=threadContainor, 
                name='tc', 
                kwargs={'threadQ': threadQ},
-               daemon=True)
+               daemon=True)    # This daemon thread would keep observering whether
+                               # the bot generates a download request and put it into the threadQ.
+                               # Ones detects a request and there is no other ongoing requests,
+                               # this daemon thread would start the request thread.
    tc.start()
    logger.info('Download thread containor initiated.')
    logger.info('Bot started.')
@@ -197,11 +210,11 @@ def main():
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-logging.getLogger('requests').setLevel(logging.CRITICAL)
+logging.getLogger('requests').setLevel(logging.CRITICAL) # Rule out the requests' common loggings since
+                                                         # they are useless. 
 threadQ = Queue()  # This queue object put the download function into the thread containor 
-                                   # Using this thread containor wound also limits the download function thread
-                                  # to prevent e-h to ban IP.
-# processQ = multiprocessing.Queue()
+                   # Using this thread containor wound also limits the download function thread
+                   # to prevent e-h to ban IP.
 
 (STATE) = range(1)
 
