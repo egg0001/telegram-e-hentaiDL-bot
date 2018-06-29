@@ -113,6 +113,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       # Create a ThreadPoolExecutor object to handle the image download threads.
       while pageContentDict['nextPage']:
          for mP in pageContentDict['contentPages']:
+            logger.info("Begin to retrive image pages's url from index page, this would take a while.")
             if errorPageList:
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
@@ -140,6 +141,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
          else:
             pageContentDict['nextPage'] = ''
       # Then run the download threads in the pool and retrive the error report(if have)
+      logger.info("Retrive process completed.")
       for t in threadPoolList:
          t.result()
       executor.shutdown()
