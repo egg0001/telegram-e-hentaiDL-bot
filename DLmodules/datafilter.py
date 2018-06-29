@@ -3,7 +3,8 @@ import re
 from . import regx 
 
 def exhtest(htmlContent):
-
+   '''Detect whether user's cookies allow to access exhentai by searching
+      the "Front page" keyword.''' 
    pattern = re.compile(r"Front Page")
    usefulCookies = False
    if bool(re.search(pattern, htmlContent)):
@@ -13,6 +14,7 @@ def exhtest(htmlContent):
 
 
 def genmangainfoapi(resultJsonDict, exh):
+   '''Transform the raw galleries' information from API result to a more easy to handle form.'''
    mangaInfo = {}
    resultDict = {}
    for gmd in resultJsonDict:
@@ -95,6 +97,8 @@ def genmangainfoapi(resultJsonDict, exh):
 
 
 def mangadlfilter(htmlContent):
+   '''The mangadownloadctl function would exploit this function to retrive every page's url and 
+      the url of next index page from the gallery's current index page.'''
    pageContentDict = {'nextPage': '',
                       'contentPages': []}
    mangaPagePattern = re.compile(regx.mangaPagePattern)
@@ -113,6 +117,10 @@ def mangadlfilter(htmlContent):
 
 
 def mangadlhtmlfilter(htmlContent, url):
+   '''The mangadownload function would use this function to retrive the image file's url to
+      download as well as the page reload botton's url to handle the error download exceptions. 
+      Once the download raises an exception, the program would use this reload page url to access
+      another hath server to download the image.'''
    downloadUrlsDict = {'imageUrl': "", 'reloadUrl': ''}
    imagePattern = re.compile(regx.imagePattern)
    matchUrls = imagePattern.search(htmlContent)

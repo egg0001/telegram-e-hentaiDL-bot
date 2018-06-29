@@ -11,8 +11,7 @@ from . import dloptgenerate
 from . import datafilter
 from . import usermessage
 from . import regx 
-from threading import Thread
-from threading import enumerate
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from io import BytesIO
 from shutil import make_archive
@@ -20,10 +19,8 @@ from shutil import move
 from shutil import rmtree
 from zipfile import ZipFile
 
-
-
-
 def userfiledetect(path):
+   ''' Detect the  working path, if no, create a new one.'''
    if os.path.exists(path) == False:
       os.makedirs(path, exist_ok=True)
       userdict = {}
@@ -52,6 +49,7 @@ def userfiledetect(path):
   
 
 def cookiesfiledetect(foresDelete=False):
+   ''' Detect the internal cookies file. '''
    cookiesInfoDict = {'internalCookies': {},
                       'canEXH': False,
                       'userCookies': {},
@@ -63,26 +61,28 @@ def cookiesfiledetect(foresDelete=False):
          json.dump(cookiesInfoDict, fo)
    return cookiesInfoDict
 
-def mangadownloadctl(mangasession, path, logger, manga,
-                     dlopt, zipThreadQ=None, zipStateQ=None):
+def mangadownloadctl(mangasession, path, logger, manga, dlopt):
+   ''' This function would download every page of every gallery(manga object). Before download, 
+       it would even detect the previous download status and determin whether the gallery should 
+       be download. Then, it would analyze the index pages of the gallery and retrive the pages' urls  
+       needing to download the images. The information would be submitted to ThreadPoolExecutor's 
+       objects. Then an executor would initiate the download threads concurrently. After all the 
+       downloads completed, this function would store a preview image as a bytes object into the manga 
+       object. After that, it would zip the download folder if user required. Lastly, it would also 
+       store all the crucial error messages (if have) to the manga object parparing to return.'''
    pageContentDict = {}  # Contains the current manga pages' information to download
    errorPageList = [] # Contains the error download pages in previous download
                       # Only useful while the program has detected some broken download history.
    htmlContentList = [] # Contain ONE gallery index page
    dlErrorDict = {}  # Contains all the critical error message while downloading images
+   threadPoolList = [] # Contains all the future objects for ThreadPoolExecutor to exectue.
+   q = Queue()  # Contin the report of download errors 
    manga.dlErrorDict = None  # Default variable of this attribute
    if manga.category == None:
       dlPath = path
    else:
       dlPath = '{0}{1}/'.format(path, manga.category)
-   downloadThreadQ = Queue() #Contain the image download threads 
-   q = Queue()  # Contin the report of download errors  
-   imageDownloadContainor = Thread(target=downloadThreadContainor, 
-                                   name='tc', 
-                                   kwargs={'threadQ': downloadThreadQ,
-                                           'threadLimit': config.dlThreadLimit},
-                                   daemon=True)
-   imageDownloadContainor.start()
+    
    logger.info('Begin to download gallery {0}'.format(manga.url))
    stop = dloptgenerate.Sleep(config.rest)
    tempErrDict ={manga.url: {}}
@@ -90,7 +90,7 @@ def mangadownloadctl(mangasession, path, logger, manga,
 #                  'dlErrorDict': {}}
    analysisPreviousDLResultDict = analysisPreviousDL(dlPath=dlPath, url=manga.url, title=manga.title, 
                                                      mangaData=manga.mangaData, logger=logger)
-
+   # Analysis the previous download history.
    htmlContentList = accesstoehentai(method='get', 
                                      mangasession=mangasession, 
                                      stop=stop, 
@@ -100,31 +100,30 @@ def mangadownloadctl(mangasession, path, logger, manga,
 
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+   # Then retrive the first page of the gallery index.
    if analysisPreviousDLResultDict['downloadIssue'] == True and analysisPreviousDLResultDict['completeDownload'] == False:
       errorPageDict = datafilter.mangadlfilter(analysisPreviousDLResultDict['errorPageStr'])
       if errorPageDict.get('contentPages'):
          for ePD in errorPageDict['contentPages']:
             errorPageList.append(ePD[0])
 #    threadCounter = 0
+
    if pageContentDict.get('contentPages') and analysisPreviousDLResultDict['completeDownload'] == False:
+      executor = ThreadPoolExecutor(max_workers=config.dlThreadLimit)
+      # Create a ThreadPoolExecutor object to handle the image download threads.
       while pageContentDict['nextPage']:
          for mP in pageContentDict['contentPages']:
             if errorPageList:
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
                   continue
-            t = Thread(target=mangadownload, 
-                       name='imageDownloadThread',
-                       kwargs={'url': mP[1],
-                               'mangasession': mangasession,
-                               'filename': mP[0],
-                               'path': '{0}{1}/'.format(dlPath, manga.title),
-                               'logger': logger,
-                               'q': q,
-                               'threadQ': downloadThreadQ
-                               }
-                     )
-            downloadThreadQ.put(t)
+            threadPoolList.append(executor.submit(fn=mangadownload,
+                                                  url=mP[1],
+                                                  mangasession=mangasession,
+                                                  filename=mP[0],
+                                                  path='{0}{1}/'.format(dlPath, manga.title),
+                                                  logger=logger,
+                                                  q=q))
          if pageContentDict['nextPage'] != -1:
             htmlContentList = accesstoehentai(method='get', 
                                               mangasession=mangasession, 
@@ -140,7 +139,10 @@ def mangadownloadctl(mangasession, path, logger, manga,
                break
          else:
             pageContentDict['nextPage'] = ''
-      downloadThreadQ.join()
+      # Then run the download threads in the pool and retrive the error report(if have)
+      for t in threadPoolList:
+         t.result()
+      executor.shutdown()
       logger.info('{0} download completed.'.format(manga.url))
       while not q.empty():
          temp = q.get()
@@ -149,6 +151,7 @@ def mangadownloadctl(mangasession, path, logger, manga,
          logger.error("Encountered a critical error while downloading images of {0}. ".format(manga.url) +
                       "An error log would be deployed; and the zip function would be disabled.")
          dlErrorDict.update(tempErrDict[manga.url])
+      # Retrive the first page as the preview page, store it as an attribute in the manga object in the memory. 
       fileList = [f for f in os.listdir('{0}{1}/'.format(dlPath, manga.title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, manga.title), f))] 
       # print (fileList)
       if '.mangaLog' in fileList:
@@ -156,7 +159,6 @@ def mangadownloadctl(mangasession, path, logger, manga,
       # print (fileList)
       fileList.sort()
       previewImage = fileList[0]
-
       previewImageFormat = (previewImage.split('.'))[-1]
       if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
          previewImageFormat = 'jpeg'
@@ -185,28 +187,30 @@ def mangadownloadctl(mangasession, path, logger, manga,
    if analysisPreviousDLResultDict['completeDownload'] == False:
       with open(('{0}{1}/.mangaLog'.format(dlPath, manga.title)), 'w') as fo:
          json.dump({manga.url: manga.mangaData}, fo)
+   # Zip the download folder if user required. If the dlErrorDict not empty indicating the 
+   # download process has encountered the critical errors, the zip function would be disabled. 
+   if (dlopt.Zip == True and analysisPreviousDLResultDict['completeDownload'] == False 
+       and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
+      zipErrorDict = zipmangadir(url=manga.url, path=dlPath, title=manga.title,
+                           removeDir=dlopt.removeDir, logger=logger)
+      if zipErrorDict:
+         dlErrorDict.update(zipErrorDict)
    if dlErrorDict:
       manga.dlErrorDict = dlErrorDict
       with open(('{0}{1}/errorLog'.format(dlPath, manga.title)), 'w') as fo:
          json.dump(dlErrorDict, fo)
    elif os.path.isfile('{0}{1}/errorLog'.format(dlPath, manga.title)):
       os.remove('{0}{1}/errorLog'.format(dlPath, manga.title))
-   if (dlopt.Zip == True and analysisPreviousDLResultDict['completeDownload'] == False 
-       and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
-      t = Thread(target=zipmangadir, 
-                 name="{0}.zip".format(manga.title),
-                 kwargs={'url': manga.url,
-                        'path': dlPath,
-                        'title': manga.title,
-                        'removeDir': dlopt.removeDir,
-                        'logger': logger,
-                        'zipStateQ': zipStateQ,
-                        'zipThreadQ': zipThreadQ})
-      zipThreadQ.put(t)
-
    return manga
 
-def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
+def mangadownload(url, mangasession, filename, path, logger, q):
+   ''' This function would retrive the image url from the webpage and then download it on 
+       the disk. To handle the network fluctuation, including the empty htmlpage, the error
+       network status codes and the corrupted images, it exploits a combination of for loop 
+       and the try-except syntax to overcome them. Users could determin how many times the 
+       program should retry downloading the image before abort. If the retry times reach 
+       the limitation, it would generate a report and put it into a queue object. After all
+       download completed, the mangadownloadctl function would retrive this report. '''
    logger.info('Page {0} download start'.format(filename))
    errorMessage = {url: {}}
    downloadUrlsDict = {'imageUrl': "", 'reloadUrl': ''}
@@ -244,8 +248,6 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
          errorMessage[url].update({err: str(error)})
          err += 1
          time.sleep(0.5)
-      #    with open('{0}{1}-{2}{3}'.format(path, filename, err, '.htmlcontent'), 'w') as fo:
-      #       fo.write(htmlContentList[0])
       else:
          err=0
          break
@@ -257,11 +259,15 @@ def mangadownload(url, mangasession, filename, path, logger, q, threadQ):
    else:
       pass
    del htmlContentList
-   threadQ.task_done()
+#    threadQ.task_done()
 
 
 def analysisPreviousDL(dlPath, url, title, mangaData, logger):
-   '''Determin the previous download status '''
+   '''Determin the previous download status from folder or zip files. If the program detects a successful
+      previous download (no errorLog file in the folder), it would retrive the first image as an bytes 
+      object and return it to mangadownloadctl function as previous image. It would also analysis previous 
+      download's errorLog file to determin which page should be download again. However, if the previous 
+      file has been archived, it would assume that the previous download was successful.'''
    analysisPreviousDLResultDict = {'errorPageStr': '',
                                    'downloadIssue': True,
                                    'completeDownload': False,
@@ -326,15 +332,6 @@ def analysisPreviousDL(dlPath, url, title, mangaData, logger):
 
    return analysisPreviousDLResultDict
 
-def downloadThreadContainor(threadQ, threadLimit, threadName='imageDownloadThread'):
-   while True:
-      while sum(t.name =='imageDownloadThread' for t in enumerate())>= threadLimit:
-         continue
-      else:
-         t = threadQ.get()
-         t.start()
-
-
 #-------------Several personalized Exceptions----------------------
 
 class jpegEOIError(Exception):
@@ -348,7 +345,10 @@ class downloadStatusCodeError(Exception):
 
 #---------------------------------------------------------------------
 
-def zipmangadir(url, path, title, removeDir, logger, zipStateQ=None, zipThreadQ=None):
+def zipmangadir(url, path, title, removeDir, logger):
+   '''This function would archive the download folder as zip file and then 
+      delete the original folder(if user required). If encounters any exception,
+      it would return the exception to mangadownloadctl function.'''
    logger.info('Begin archiving gallery files of {0}.'.format(url))
    zipErrorDict = {}
    try:
@@ -367,15 +367,14 @@ def zipmangadir(url, path, title, removeDir, logger, zipStateQ=None, zipThreadQ=
       zipErrorDict.update({url: {'zipArchiveError': str(error)}})
    else:
       logger.info('Gallery files of {0} has been archived.'.format(url))
-   if zipErrorDict != None and zipStateQ != None:
-      zipStateQ.put(zipErrorDict)
-   if zipThreadQ != None:
-      zipThreadQ.task_done()
-   else:
-      pass
    return zipErrorDict
 
 def accesstoehentai(method, mangasession, stop, logger, urls=None):
+   ''' Most of the parts of the program would use this function to retrive the htmlpage, and galleries'
+       information by using e-h's API. It provides two methods to access e-hentai/exhentai. The get 
+       methot would return the htmlpage; and the post method would extract the gallery ID and gallery
+       key to generate the json payload to exploit e-h's API then return the API's result. It also exploits
+       a combination of for loop and try-except syntax to deal with the unstable network.'''
 #    print (urls)
    resultList = []
    if method == 'get':

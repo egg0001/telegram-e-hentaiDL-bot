@@ -70,9 +70,9 @@ def state(bot, update, user_data, chat_data):
    return ConversationHandler.END
       
 def threadContainor(threadQ, threadLimit=1):
-   '''A simple thread/process containor to limit the amount of the download process thus 
-      prevent e-hentai bans user's IP. The download function would also use this to limit
-      the zip archive thread.'''
+   '''A simple thread/process containor daemon thread to limit the amount of the download 
+      process thus prevent e-hentai bans user's IP. The t = threadQ.get() would block this 
+      loop until it receive a user request sent by the bot's user interaction function.'''
    # Put any threads to this function and it would run separately.
    # But please remember put the threadQ obj into the functions in those threads to use threadQ.task_done().
    # Or the program would stock.
@@ -89,7 +89,7 @@ def threadContainor(threadQ, threadLimit=1):
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
        sending function to deal with user's requests.'''
-   outDict = ehdownloader(urlResultList=urlResultList, logger=logger, threadContainor=threadContainor)
+   outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
    if outDict.get('cookiesError'):
       messageDict = {"messageContent": [outDict['cookiesError']],

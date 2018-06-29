@@ -19,32 +19,19 @@ class mangaInfo():
    '''This class and each of its objects contain the information of every gallery'''
    __slots__ = ('url', 'category', 'title', 'mangaData', 'previewImage', 'dlErrorDict', 'exh')
 
-def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadContainor):
+def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
    '''This function processes all the requested urls(galleries), including retriving their information,
-      and sends every of them to the partical download function.'''
+      sends every of them to the partical download function and return the download result to telegram
+      bot.'''
    urlSeparateList = [] # separate urls (list) to sublist containing 24 urls in each element
    urlsDict = {'e-hentai': [], 'exhentai': []}  # Separating galleries urls into two lists.
    tempList = [] # store the API result from e-h/exh
    tempDict = {} # transfer internal data
-   mangaObjList = [] # Store the mangaInfo objects.
-   toMangaLogDict = {} # Transport the manga attributes to .mangalog file. 
+   mangaObjList = [] # Temporary store the mangaInfo objects.
+   toMangaLogDict = {} # Transport the manga information to .mangalog file. 
    resultObjList = [] # Contain the download result objects
    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
-   zipErrorDict = {} # Contain all the error message of zip function.
-   if dlopt.Zip == True:
-      zipThreadQ = Queue() #Contain the zip threads 
-      zipStateQ = Queue()  # Contin the report of zip threads 
-      zipContainor = Thread(target=threadContainor, 
-                            name='tc', 
-                            kwargs={'threadQ': zipThreadQ,},
-                            daemon=True)
-      zipContainor.start()   
-      #This daemon thread would retrive and deal with all the zip archiving threads.
-      logger.info('Thread containor of zip function initiated.')
-   else:
-      zipThreadQ = None
-      zipStateQ = None
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhentai'].append(url)
@@ -94,7 +81,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
-      # Re-classify the information and prepare to generate the objects.
+      # Re-classify the information and prepare to generate the manga objects.
       for url in tempDict:
          manga = mangaInfo()
          manga.url = url 
@@ -111,13 +98,15 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
          mangaObjList.append(manga)
       logger.info("Retrieved {0} gallery(s)' information in {1}.".format(len(mangaObjList), ulCategory))
       for manga in mangaObjList:
+         # ...Then send all the manga objects to partical manga download function...
          resultObjList.append(download.mangadownloadctl(mangasession=mangasession, 
                                                         path=path,
                                                         logger=logger,
                                                         manga=manga,
                                                         dlopt=dlopt,
-                                                        zipThreadQ=zipThreadQ,
-                                                        zipStateQ=zipStateQ,
+                                                      #   zipThreadQ=zipThreadQ,
+                                                      #   zipStateQ=zipStateQ,
+                                                      #   threadContainor=threadContainor
                                                       )
                              ) 
       toMangaLogDict.update(manga.mangaData)
@@ -127,18 +116,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger, threadCon
       mangaObjList = []
    outDict.update({'resultObjList': resultObjList})
    outDict.update(errorMessage)
-   if zipThreadQ and zipStateQ:
-      zipThreadQ.join()
-      while not zipStateQ.empty():
-         temp = zipStateQ.get()
-         zipErrorDict.update(temp)
-   if zipErrorDict:
-      for manga in resultObjList:
-         if zipErrorDict.get(manga.url):
-            manga.dlErrorDict.update(zipErrorDict[manga.url])
-      # for zED in zipErrorDict:
-      #    resultDict[zED]['dlErrorDict'].update(zipErrorDict[zED])
    download.userfiledetect(path=config.path)
+   # After downloaded all galleries, store the download result to a log file.
    with open("{0}.mangalog".format(config.path), 'r') as fo:
       mangaInfoDict = json.load(fo)
       mangaInfoDict.update(toMangaLogDict)
@@ -205,8 +184,11 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
    return mangasessionDict
 
 
-def Spidercontrolasfunc(dloptDict, logger, threadContainor):
-   '''This function is the entry and the basic plot of the whole download process.'''
+def Spidercontrolasfunc(dloptDict, logger):
+   '''This function is the entry and the basic plot of the whole download process,
+      including generating a requests session, examing whether the cookies could 
+      access exhentai, and send the session as well as all galleries urls to download 
+      function.'''
    hasEXH = False  
    # This bool variable determin whether the request contains url(s)
    # to exhentai requiring some special methods to view.
@@ -232,7 +214,6 @@ def Spidercontrolasfunc(dloptDict, logger, threadContainor):
                          errorMessage=dloptDict['errorMessage'],
                          dlopt=dloptDict['dlopt'],
                          logger=logger,
-                         threadContainor=threadContainor
                         )
    #This outDict contains the download results for all the url(s) including images and
    # titles of the gallery(s) and the error reports it encounters while downloading.
