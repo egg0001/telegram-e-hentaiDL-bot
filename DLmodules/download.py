@@ -110,10 +110,10 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
 
    if pageContentDict.get('contentPages') and analysisPreviousDLResultDict['completeDownload'] == False:
       executor = ThreadPoolExecutor(max_workers=config.dlThreadLimit)
+      logger.info("Begin to retrive image pages' urls from index pages, this would take a while.")
       # Create a ThreadPoolExecutor object to handle the image download threads.
       while pageContentDict['nextPage']:
          for mP in pageContentDict['contentPages']:
-            logger.info("Begin to retrive image pages's url from index page, this would take a while.")
             if errorPageList:
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
@@ -220,7 +220,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
    for err in range(config.timeoutRetry):
       try:   
          if err != 0 and downloadUrlsDict['reloadUrl']:
-            mangaUrl = url
+            mangaUrl = downloadUrlsDict['reloadUrl']
          else: 
             mangaUrl = url
          htmlContentList = accesstoehentai(method="get", 
@@ -269,7 +269,8 @@ def analysisPreviousDL(dlPath, url, title, mangaData, logger):
       previous download (no errorLog file in the folder), it would retrive the first image as an bytes 
       object and return it to mangadownloadctl function as previous image. It would also analysis previous 
       download's errorLog file to determin which page should be download again. However, if the previous 
-      file has been archived, it would assume that the previous download was successful.'''
+      file has been archived, it would assume that the previous download was successful and retrive the
+      first page as the preview page.'''
    analysisPreviousDLResultDict = {'errorPageStr': '',
                                    'downloadIssue': True,
                                    'completeDownload': False,
@@ -372,11 +373,11 @@ def zipmangadir(url, path, title, removeDir, logger):
    return zipErrorDict
 
 def accesstoehentai(method, mangasession, stop, logger, urls=None):
-   ''' Most of the parts of the program would use this function to retrive the htmlpage, and galleries'
-       information by using e-h's API. It provides two methods to access e-hentai/exhentai. The get 
-       methot would return the htmlpage; and the post method would extract the gallery ID and gallery
-       key to generate the json payload to exploit e-h's API then return the API's result. It also exploits
-       a combination of for loop and try-except syntax to deal with the unstable network.'''
+   ''' Most of the parts of the  program would use this function to retrive the htmlpage, and galleries'
+       information by using e-h's API. It provides two methods to access e-hentai/exhentai. The GET 
+       methot would return the htmlpage; and the POST method would extract the gallery ID and gallery
+       key to generate the json payload sending exploit e-h's API then return the API's result. It 
+       also exploits a combination of for loop and try-except syntax to deal with the unstable network.'''
 #    print (urls)
    resultList = []
    if method == 'get':
