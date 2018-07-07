@@ -163,9 +163,9 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       # print (fileList)
       fileList.sort()
       previewImage = fileList[0]
-      previewImageFormat = (previewImage.split('.'))[-1]
-      if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
-         previewImageFormat = 'jpeg'
+      # previewImageFormat = (previewImage.split('.'))[-1]
+      # if previewImageFormat == 'JPG' or previewImageFormat == 'jpg':
+      #    previewImageFormat = 'jpeg'
       try:
          bio = BytesIO()
          with open('{0}{1}/{2}'.format(dlPath, manga.title, previewImage), 'rb') as fo:
@@ -241,8 +241,6 @@ def mangadownload(url, mangasession, filename, path, logger, q):
             contentTypeList = previewimage.headers['Content-Type'].split('/')
             with open("{0}{1}.{2}".format(path, filename, contentTypeList[1]), 'wb') as handle:
                for chunk in previewimage.iter_content(chunk_size=4096):
-                  if not chunk:
-                     break
                   handle.write(chunk)
             if int(previewimage.headers['Content-Length']) != int(os.path.getsize("{0}{1}.{2}".format(path, filename, contentTypeList[1]))):
                raise jpegEOIError('Image is corrupted')
