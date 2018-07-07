@@ -19,7 +19,7 @@ class mangaInfo():
    '''This class and each of its objects contain the information of every gallery'''
    __slots__ = ('url', 'category', 'title', 'mangaData', 'previewImage', 'dlErrorDict', 'exh')
 
-def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
+def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
    '''This function processes all the requested urls(galleries), including retriving their information,
       sends every of them to the partical download function and return the download result to telegram
       bot.'''
@@ -80,6 +80,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
             logger.warning('gid {0} encountered an error, delete'.format(tL['gid']))
             gidErrorDict['gidError'].append(tL['gid'])
             tempList.remove(tL)
+      if gidErrorDict['gidError']:
+         errorStoreMangaObj.dlErrorDict.update(gidErrorDict)
       tempDict = datafilter.genmangainfoapi(resultJsonDict=tempList, exh=exh)
       # Re-classify the information and prepare to generate the manga objects.
       for url in tempDict:
@@ -87,6 +89,7 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
          manga.url = url 
          manga.mangaData = tempDict[url]
          manga.exh = exh
+         manga.dlErrorDict = {}
          if tempDict[url]["category"]:
             manga.category = tempDict[url]["category"][0]
          else:
@@ -109,13 +112,14 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
                                                       #   threadContainor=threadContainor
                                                       )
                              ) 
-      toMangaLogDict.update(manga.mangaData)
+         toMangaLogDict.update(manga.mangaData)
       urlSeparateList = [] 
       tempDict = {}   # Reset all the loop relating variables  
       tempList = []
       mangaObjList = []
+   resultObjList.append(errorStoreMangaObj)   
    outDict.update({'resultObjList': resultObjList})
-   outDict.update(errorMessage)
+#    outDict.update(errorMessage)
    download.userfiledetect(path=config.path)
    # After downloaded all galleries, store the download result to a log file.
    with open("{0}.mangalog".format(config.path), 'r') as fo:
@@ -123,8 +127,8 @@ def mangaspider(urls, mangasession, path, errorMessage, dlopt, logger):
       mangaInfoDict.update(toMangaLogDict)
    with open("{0}.mangalog".format(config.path), 'w') as fo:
       json.dump(mangaInfoDict, fo)
-   if gidErrorDict['gidError']:
-      outDict.update(gidErrorDict)
+#    if gidErrorDict['gidError']:
+#       outDict.update(gidErrorDict)
 #    print (outDict)
    return outDict
 
@@ -189,6 +193,10 @@ def Spidercontrolasfunc(dloptDict, logger):
       including generating a requests session, examing whether the cookies could 
       access exhentai, and send the session as well as all galleries urls to download 
       function.'''
+   errorStoreMangaObj = mangaInfo() # This mangaInfo object stores all the general errors,
+                                    # including cookies errors and galleries' token errors.
+   errorStoreMangaObj.dlErrorDict = dloptDict['errorMessage']
+   errorStoreMangaObj.title = 'errorStoreMangaObj'
    hasEXH = False  
    # This bool variable determin whether the request contains url(s)
    # to exhentai requiring some special methods to view.
@@ -204,16 +212,16 @@ def Spidercontrolasfunc(dloptDict, logger):
 #    print (mangasessionDict)
    if mangasessionDict['eh'] == True and hasEXH == True:   
       # If user's cookies could not access exhentai, the program would delete exh's url(s).                                                     
-      dloptDict['errorMessage'].update({'cookiesError': usermessage.usercookiesEXHError})
+      errorStoreMangaObj.dlErrorDict.update({'cookiesError': usermessage.usercookiesEXHError})
       for url in dloptDict['dlopt'].urls:
          if url.find('exhentai') != -1:
            dloptDict['dlopt'].urls.remove(url)
    outDict = mangaspider(urls=dloptDict['dlopt'].urls, 
                          mangasession=mangasession,
                          path=dloptDict['dlopt'].path,
-                         errorMessage=dloptDict['errorMessage'],
                          dlopt=dloptDict['dlopt'],
                          logger=logger,
+                         errorStoreMangaObj=errorStoreMangaObj
                         )
    #This outDict contains the download results for all the url(s) including images and
    # titles of the gallery(s) and the error reports it encounters while downloading.

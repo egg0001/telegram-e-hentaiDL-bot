@@ -77,7 +77,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
    dlErrorDict = {}  # Contains all the critical error message while downloading images
    threadPoolList = [] # Contains all the future objects for ThreadPoolExecutor to exectue.
    q = Queue()  # Contin the report of download errors 
-   manga.dlErrorDict = None  # Default variable of this attribute
+#    manga.dlErrorDict = None  # Default variable of this attribute
    if manga.category == None:
       dlPath = path
    else:
@@ -111,9 +111,10 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
    if pageContentDict.get('contentPages') and analysisPreviousDLResultDict['completeDownload'] == False:
       executor = ThreadPoolExecutor(max_workers=config.dlThreadLimit)
       # Create a ThreadPoolExecutor object to handle the image download threads.
+      logger.info("Begin to retrive images' urls from index pages, this would take a while.")
       while pageContentDict['nextPage']:
+         
          for mP in pageContentDict['contentPages']:
-            logger.info("Begin to retrive image pages's url from index page, this would take a while.")
             if errorPageList:
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
@@ -175,34 +176,35 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
          logger.exception('Raise {0} while opening preview image of {1}'.format(error, manga.url))
          dlErrorDict.update({'openFileError': {manga.url: str(error)}})
          manga.previewImage = None
-   
+      if analysisPreviousDLResultDict['completeDownload'] == False:
+         with open(('{0}{1}/.mangaLog'.format(dlPath, manga.title)), 'w') as fo:
+            json.dump({manga.url: manga.mangaData}, fo)
+      # Zip the download folder if user required. If the dlErrorDict not empty indicating the 
+      # download process has encountered the critical errors, the zip function would be disabled. 
+      if (dlopt.Zip == True and analysisPreviousDLResultDict['completeDownload'] == False 
+      and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
+         zipErrorDict = zipmangadir(url=manga.url, path=dlPath, title=manga.title,
+                                    removeDir=dlopt.removeDir, logger=logger)
+         if zipErrorDict:
+            dlErrorDict.update(zipErrorDict)
+      if dlErrorDict:
+         manga.dlErrorDict = dlErrorDict
+         with open(('{0}{1}/errorLog'.format(dlPath, manga.title)), 'w') as fo:
+            json.dump(dlErrorDict, fo)
+      elif os.path.isfile('{0}{1}/errorLog'.format(dlPath, manga.title)):
+         os.remove('{0}{1}/errorLog'.format(dlPath, manga.title))
    elif  analysisPreviousDLResultDict['completeDownload'] == True:
       logger.info('{0} had been completed in previous process.'.format(manga.url))
-      manga.previewImage =(analysisPreviousDLResultDict['previewImageDict'])
+      manga.previewImage =(analysisPreviousDLResultDict['previewImageDict'][manga.title])
    else:
+      manga.previewImage = None
       logger.warning('{0} does not contain any page, maybe deleted'.format(manga.url))
-      dlErrorDict.update({'galleryError': usermessage.galleryError})
+      manga.dlErrorDict.update({'galleryError': usermessage.galleryError})
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
 #    print (dlopt.Zip)
 #    print (path)
-   if analysisPreviousDLResultDict['completeDownload'] == False:
-      with open(('{0}{1}/.mangaLog'.format(dlPath, manga.title)), 'w') as fo:
-         json.dump({manga.url: manga.mangaData}, fo)
-   # Zip the download folder if user required. If the dlErrorDict not empty indicating the 
-   # download process has encountered the critical errors, the zip function would be disabled. 
-   if (dlopt.Zip == True and analysisPreviousDLResultDict['completeDownload'] == False 
-       and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
-      zipErrorDict = zipmangadir(url=manga.url, path=dlPath, title=manga.title,
-                           removeDir=dlopt.removeDir, logger=logger)
-      if zipErrorDict:
-         dlErrorDict.update(zipErrorDict)
-   if dlErrorDict:
-      manga.dlErrorDict = dlErrorDict
-      with open(('{0}{1}/errorLog'.format(dlPath, manga.title)), 'w') as fo:
-         json.dump(dlErrorDict, fo)
-   elif os.path.isfile('{0}{1}/errorLog'.format(dlPath, manga.title)):
-      os.remove('{0}{1}/errorLog'.format(dlPath, manga.title))
+
    return manga
 
 def mangadownload(url, mangasession, filename, path, logger, q):
