@@ -243,6 +243,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                for chunk in previewimage.iter_content(chunk_size=4096):
                   handle.write(chunk)
             if int(previewimage.headers['Content-Length']) != int(os.path.getsize("{0}{1}.{2}".format(path, filename, contentTypeList[1]))):
+               os.remove("{0}{1}.{2}".format(path, filename, contentTypeList[1]))
                raise jpegEOIError('Image is corrupted')
          else:
             raise downloadStatusCodeError('Download status code error.')

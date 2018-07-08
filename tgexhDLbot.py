@@ -89,33 +89,11 @@ def threadContainor(threadQ, threadLimit=1):
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
        sending function to deal with user's requests.'''
-   outDict = ehdownloader(urlResultList=urlResultList, logger=logger)
+   resultObjList = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
-   if outDict.get('cookiesError'):
-      messageDict = {"messageContent": [outDict['cookiesError']],
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=chat_id,
-                     logger=logger
-                    )
-   if outDict.get('gidError'): 
-      gidErrorList = []
-      for gE in outDict['gidError']:
-         gidErrorList.append(usermessage.gidError.format(gE))
-      messageDict = {"messageContent": gidErrorList,
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=chat_id,
-                     logger=logger
-                    )
-   for manga in outDict['resultObjList']:
+   for manga in resultObjList:
       if manga.title != 'errorStoreMangaObj':
          if manga.previewImage:
-
             messageDict = {"messageContent": [manga.previewImage],
                            'messageCate': 'photo',
                           }

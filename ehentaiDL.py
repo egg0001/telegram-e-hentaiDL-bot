@@ -30,7 +30,7 @@ def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
    mangaObjList = [] # Temporary store the mangaInfo objects.
    toMangaLogDict = {} # Transport the manga information to .mangalog file. 
    resultObjList = [] # Contain the download result objects
-   outDict = {}# return the information
+#    outDict = {}# return the information
    gidErrorDict = {'gidError': []} # Record the error gids
    for url in urls:
       if url.find('exhentai') != -1:
@@ -118,8 +118,6 @@ def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
       tempList = []
       mangaObjList = []
    resultObjList.append(errorStoreMangaObj)   
-   outDict.update({'resultObjList': resultObjList})
-#    outDict.update(errorMessage)
    download.userfiledetect(path=config.path)
    # After downloaded all galleries, store the download result to a log file.
    with open("{0}.mangalog".format(config.path), 'r') as fo:
@@ -127,10 +125,7 @@ def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
       mangaInfoDict.update(toMangaLogDict)
    with open("{0}.mangalog".format(config.path), 'w') as fo:
       json.dump(mangaInfoDict, fo)
-#    if gidErrorDict['gidError']:
-#       outDict.update(gidErrorDict)
-#    print (outDict)
-   return outDict
+   return resultObjList
 
 
 def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate whether the cookies could access exh
@@ -216,13 +211,13 @@ def Spidercontrolasfunc(dloptDict, logger):
       for url in dloptDict['dlopt'].urls:
          if url.find('exhentai') != -1:
            dloptDict['dlopt'].urls.remove(url)
-   outDict = mangaspider(urls=dloptDict['dlopt'].urls, 
-                         mangasession=mangasession,
-                         path=dloptDict['dlopt'].path,
-                         dlopt=dloptDict['dlopt'],
-                         logger=logger,
-                         errorStoreMangaObj=errorStoreMangaObj
-                        )
+   resultObjList = mangaspider(urls=dloptDict['dlopt'].urls, 
+                               mangasession=mangasession,
+                               path=dloptDict['dlopt'].path,
+                               dlopt=dloptDict['dlopt'],
+                               logger=logger,
+                               errorStoreMangaObj=errorStoreMangaObj
+                              )
    #This outDict contains the download results for all the url(s) including images and
    # titles of the gallery(s) and the error reports it encounters while downloading.
    internalCookies = requests.utils.dict_from_cookiejar(mangasession.cookies)
@@ -237,7 +232,7 @@ def Spidercontrolasfunc(dloptDict, logger):
    with open('./DLmodules/.cookiesinfo', 'w+') as fo:
       json.dump(cookiesInfoDict, fo)
    gc.collect()
-   return outDict
+   return resultObjList
 
 
 
