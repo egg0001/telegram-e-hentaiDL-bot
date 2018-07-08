@@ -246,7 +246,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                os.remove("{0}{1}.{2}".format(path, filename, contentTypeList[1]))
                raise jpegEOIError('Image is corrupted')
          else:
-            raise downloadStatusCodeError('Download status code error.')
+            raise downloadStatusCodeError('Download status code error - {0}.'.format(previewimage.status_code))
       except Exception as error:
          logger.exception('{0} has encounter an error {1}'.format(url, error))
          errorMessage[url].update({err: str(error)})
