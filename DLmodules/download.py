@@ -101,7 +101,8 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
    # Then retrive the first page of the gallery index.
-   if analysisPreviousDLResultDict['downloadIssue'] == True and analysisPreviousDLResultDict['completeDownload'] == False:
+   if (analysisPreviousDLResultDict['downloadIssue'] == True and 
+      analysisPreviousDLResultDict['completeDownload'] == False):
       errorPageDict = datafilter.mangadlfilter(analysisPreviousDLResultDict['errorPageStr'])
       if errorPageDict.get('contentPages'):
          for ePD in errorPageDict['contentPages']:
@@ -156,7 +157,8 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                       "An error log would be deployed; and the zip function would be disabled.")
          dlErrorDict.update(tempErrDict[manga.url])
       # Retrive the first page as the preview page, store it as an attribute in the manga object in the memory. 
-      fileList = [f for f in os.listdir('{0}{1}/'.format(dlPath, manga.title)) if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, manga.title), f))] 
+      fileList = ([f for f in os.listdir('{0}{1}/'.format(dlPath, manga.title)) 
+                  if os.path.isfile(os.path.join('{0}{1}/'.format(dlPath, manga.title), f))])
       # print (fileList)
       if '.mangaLog' in fileList:
          fileList.remove('.mangaLog')
@@ -231,10 +233,15 @@ def mangadownload(url, mangasession, filename, path, logger, q):
                                            stop=dloptgenerate.Sleep('1-2'),
                                            urls=[mangaUrl],
                                            logger=logger)
+      #    print (htmlContentList[0])
          if htmlContentList == []:
             raise htmlPageError('Empty html response.')
+         elif htmlContentList[0].find('/img/509.gif') != -1:
+            err = (config.timeoutRetry - 1)
+            raise htmlPageError('Error 509 - image quote exceeded.')
          downloadUrlsDict = datafilter.mangadlhtmlfilter(htmlContent = htmlContentList[0], url=url)
          imageUrl = downloadUrlsDict['imageUrl']
+      #    print (downloadUrlsDict)
          os.makedirs(path, exist_ok=True)
          previewimage = mangasession.get(imageUrl, stream=True)
          if previewimage.status_code == 200:
@@ -242,7 +249,8 @@ def mangadownload(url, mangasession, filename, path, logger, q):
             with open("{0}{1}.{2}".format(path, filename, contentTypeList[1]), 'wb') as handle:
                for chunk in previewimage.iter_content(chunk_size=4096):
                   handle.write(chunk)
-            if int(previewimage.headers['Content-Length']) != int(os.path.getsize("{0}{1}.{2}".format(path, filename, contentTypeList[1]))):
+            if (int(previewimage.headers['Content-Length']) != 
+                int(os.path.getsize("{0}{1}.{2}".format(path, filename, contentTypeList[1])))):
                os.remove("{0}{1}.{2}".format(path, filename, contentTypeList[1]))
                raise jpegEOIError('Image is corrupted')
          else:
