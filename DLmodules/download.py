@@ -145,8 +145,33 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
             pageContentDict['nextPage'] = ''
       # Then run the download threads in the pool and retrive the error report(if have)
       logger.info("Retrive process completed.")
+      # {url:{'err1': 'error message', 'err2': 'error message'}}
+      error509DetectDict = {}   
+      error509Counter = 0
+      encounter509Error = False
+      # These three variable would determin whether the download process encounters an
+      # error 509-image quota exceeded. It would detect the error messages returned from
+      # download threads at every ten downloads. While it detect an error 509, the program 
+      # would terminate the download process, otherwise it would clear the error509DetectDict
+      # and reset the counter.
       for t in threadPoolList:
-         t.result()
+         error509DetectDict.update(t.result())
+         error509Counter += 1
+         if error509Counter >= 10:
+            for url in error509DetectDict:
+               for err in error509DetectDict[url]:
+                  if error509DetectDict[url][err].find('509') != -1:
+                     encounter509Error = True
+                     break
+               if encounter509Error == True:
+                  break
+            if encounter509Error == True:
+               break
+            else:
+               error509DetectDict = {}
+               error509Counter = 0
+      #    if encounter509Error == True:
+      #       break
       executor.shutdown()
       logger.info('{0} download completed.'.format(manga.url))
       while not q.empty():
@@ -261,7 +286,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          err += 1
          time.sleep(0.5)
       else:
-         err=0
+         err = 0
          break
    else:
       logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
@@ -270,8 +295,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
       q.put(errorMessage)
    else:
       pass
-   del htmlContentList
-#    threadQ.task_done()
+   return errorMessage
 
 
 def analysisPreviousDL(dlPath, url, title, mangaData, logger):
