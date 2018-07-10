@@ -154,24 +154,16 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       # download threads at every ten downloads. While it detect an error 509, the program 
       # would terminate the download process, otherwise it would clear the error509DetectDict
       # and reset the counter.
-      for t in threadPoolList:
+      for t in threadPoolList:   # Separate this block to datafilter module
          error509DetectDict.update(t.result())
          error509Counter += 1
          if error509Counter >= 10:
-            for url in error509DetectDict:
-               for err in error509DetectDict[url]:
-                  if error509DetectDict[url][err].find('509') != -1:
-                     encounter509Error = True
-                     break
-               if encounter509Error == True:
-                  break
+            encounter509Error = datafilter.error509Filter(error509DetectDict)
             if encounter509Error == True:
                break
             else:
                error509DetectDict = {}
                error509Counter = 0
-      #    if encounter509Error == True:
-      #       break
       executor.shutdown()
       logger.info('{0} download completed.'.format(manga.url))
       while not q.empty():

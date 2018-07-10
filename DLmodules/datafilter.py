@@ -131,4 +131,18 @@ def mangadlhtmlfilter(htmlContent, url):
    if reloadUrl:
       downloadUrlsDict['reloadUrl'] = '{0}?nl={1}'.format(url, reloadUrl.group(1))
    return downloadUrlsDict
+
+def error509Filter(error509Dict):
+   '''This function would provide the error 509-image quota exceeded-detection for mangadownloadctl 
+      function in download module. If this function detects error 509, it would break the for loop 
+      and return True, else False.'''
+   encounter509Error = False
+   for url in error509Dict:
+      for err in error509Dict[url]:
+         if error509Dict[url][err].find('509') != -1:
+           encounter509Error = True
+           break
+      if encounter509Error == True:
+         break
+   return encounter509Error
       
