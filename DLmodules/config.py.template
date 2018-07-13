@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
-# Please view and set all the variable, then delete [.template] behind the filename.
+# Please copy all the content to a new file naming "config.py", then view and customize settings. 
 # Please do not remove every variable in this config file or the bot would crash!!
 
 #---------------Bot session--------------------------------
 token = '' # The bot token received form @BotFather.
 
-telegramUsername = '' # User's Telegram ID to identify the bot user. 
+telegramUsername = '' # User's Telegram ID to identify the bot user (WITHOUT @). 
 
 proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e-hentai.
            # Example: proxy = ['http://127.0.0.1:1080'] (http) or  proxy = ['socks5://127.0.0.1:1080'] (socks)
@@ -24,7 +24,7 @@ userCookies = {}
 
           # User's cookies (json form) for verifying the identity on e-hentai and/or exhentai.  
           # If user does not provide cookies or user's cookies could not access exhentai, 
-          # this bot would not ownload exhentai's galleries.
+          # this bot would not download exhentai's galleries.
           # Each browser has different methods to retrieve cookies of e-hentai/exhentai; 
           # for more information, please ask Google. 
           # example:  

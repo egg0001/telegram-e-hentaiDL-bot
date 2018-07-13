@@ -14,6 +14,7 @@ import time
 import random
 from threading import Thread
 import gc
+import re
 
 class mangaInfo():
    '''This class and each of its objects contain the information of every gallery'''
@@ -95,9 +96,10 @@ def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
          else:
             manga.category = None
          if config.useEntitle == False and tempDict[url]['jptitle']:
-            manga.title = tempDict[url]['jptitle'][0]
+            # Replace all the invalid path characters to '_'.
+            manga.title = re.sub('[^\w\-_\.\(\)\[\] ]', '_', tempDict[url]['jptitle'][0])
          else:
-            manga.title = tempDict[url]['entitle'][0]
+            manga.title = re.sub('[^\w\-_\.\(\)\[\] ]', '_', tempDict[url]['entitle'][0])
          mangaObjList.append(manga)
       logger.info("Retrieved {0} gallery(s)' information in {1}.".format(len(mangaObjList), ulCategory))
       for manga in mangaObjList:
