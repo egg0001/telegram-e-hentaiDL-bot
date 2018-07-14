@@ -24,13 +24,15 @@ python-telegram-bot   https://python-telegram-bot.readthedocs.io
 
 BASIC USAGE
 
-1 Apply a bot at @BotFather on Telegram. Then retrieve the bot token.
+1 View the setup.sh/setup.bin then run one of them based on OS to install all the required modules.
 
-2 Please copy all the content to a new file naming "config.py", then view and customize settings.
+2 Apply a bot at @BotFather on Telegram. Then retrieve the bot token.
 
-3 Run 'tgexhDLbot.py'.
+3 Please copy all the content to a new file naming "config.py", then view and customize settings.
 
-4 Now user can exploit Telegram to access the bot. Please send the gallery(s) urls to the bot directly, and the 
+4 Run 'tgexhDLbot.py'.
+
+5 Now user can exploit Telegram to access the bot. Please send the gallery(s) urls to the bot directly, and the 
   bot would begin download the gallery(s).
 
 If user hopes to run this bot on server's background, creating a service with systemd (Ubuntu 16.04) or upstart
