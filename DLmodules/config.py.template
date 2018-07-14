@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # Please copy all the content to a new file naming "config.py", then view and customize settings. 
-# Please do not remove every variable in this config file or the bot would crash!!
+# Please do not remove any variable in this config file or the bot would crash!!
 
 #---------------Bot session--------------------------------
 token = '' # The bot token received form @BotFather.
@@ -10,6 +10,7 @@ telegramUsername = '' # User's Telegram ID to identify the bot user (WITHOUT @).
 
 proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e-hentai.
            # Example: proxy = ['http://127.0.0.1:1080'] (http) or  proxy = ['socks5://127.0.0.1:1080'] (socks)
+           # Example(with auth): proxy = ['http://user:pass@127.0.0.1:1080']
            # Both bot and downloader would all use this proxy.
 
 messageTimeOutRetry = 5 # The retry limitation for resending messages to user due to Telegram's

@@ -17,6 +17,7 @@ from DLmodules import config
 from DLmodules import usermessage
 from queue import Queue
 import platform
+import re
 
 
 def state(bot, update, user_data, chat_data):
@@ -169,7 +170,18 @@ def error(bot, update, error):
 def main():
    '''The bot's initiation sequence.'''
    if config.proxy:
-      updater = Updater(token=config.token, request_kwargs={'proxy_url': config.proxy[0]})
+      if config.proxy[0].find('@') != -1:
+         proxyPattern = re.compile(r'''(\w+)\:\/\/(.*)\:(.*)\@(.+)\:(\d+)''')
+         proxyMatch = proxyPattern.search(config.proxy[0])
+         proxyAddress = '{0}://{1}:{2}'.format(proxyMatch.group(1), proxyMatch.group(4), proxyMatch.group(5))
+         proxyUsername = proxyMatch.group(2)
+         proxyPassword = proxyMatch.group(3)
+         updater = Updater(token=config.token, request_kwargs={'proxy_url': proxyAddress, 
+                                                               'urllib3_proxy_kwargs': 
+                                                               {'username': proxyUsername,
+                                                                'password': proxyPassword}})
+      else:
+         updater = Updater(token=config.token, request_kwargs={'proxy_url': config.proxy[0]})
    else:   
       updater = Updater(token=config.token)
    dp = updater.dispatcher
