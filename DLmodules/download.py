@@ -97,9 +97,25 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                                      urls=[manga.url],
                                      logger=logger
                                     )
-
 #    print (htmlContentList[0])
    pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+   if pageContentDict['contentPages']: 
+      pass
+   elif manga.exh == False:
+      # If using e-hentai link could not get any page content result (maybe hided into exh),
+      # the program would try to use exh to retrive the gallery (if user cookies could access exh).
+      logger.info('Could not retrive any page content in e-h gallery link, try to use exh.')
+      url = manga.url.replace('e-hentai', 'exhentai')
+      htmlContentList = accesstoehentai(method='get', 
+                                        mangasession=mangasession, 
+                                        stop=stop, 
+                                        urls=[url],
+                                        logger=logger
+                                       )
+#    print (htmlContentList[0])
+      pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+   else:
+      pass
    # Then retrive the first page of the gallery index.
    if (analysisPreviousDLResultDict['downloadIssue'] == True and 
       analysisPreviousDLResultDict['completeDownload'] == False):
@@ -107,8 +123,6 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       if errorPageDict.get('contentPages'):
          for ePD in errorPageDict['contentPages']:
             errorPageList.append(ePD[0])
-#    threadCounter = 0
-
    if pageContentDict.get('contentPages') and analysisPreviousDLResultDict['completeDownload'] == False:
       executor = ThreadPoolExecutor(max_workers=config.dlThreadLimit)
       logger.info("Begin to retrive image pages' urls from index pages, this would take a while.")

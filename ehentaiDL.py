@@ -173,12 +173,13 @@ def sessiongenfunc(dloptDict, logger, hasEXH):
                                         ) 
    elif dloptDict['dlopt'].userCookies and config.forceCookiesEH == True:
       requests.utils.add_dict_to_cookiejar(mangasession.cookies, dloptDict['dlopt'].userCookies)
-#        print (usefulCookiesDict)
+#    print (usefulCookiesDict)
+
    if usefulCookiesDict['exh'] == True:
       eh = False
    else:
       eh = True
-   mangasessionDict = {'mangasession': mangasession, 'eh': eh}
+   mangasessionDict = {'mangasession': mangasession, 'eh': eh, 'exh': usefulCookiesDict['exh']}
    return mangasessionDict
 
 
@@ -203,6 +204,7 @@ def Spidercontrolasfunc(dloptDict, logger):
    # access e-hentai/exhentai. It also contains a bool value to determin whether user's cookies could
    # access exhentai.
    mangasession = mangasessionDict['mangasession']
+   dloptDict['dlopt'].canEXH = mangasessionDict['exh']
 #    print (mangasessionDict)
    if mangasessionDict['eh'] == True and hasEXH == True:   
       # If user's cookies could not access exhentai, the program would delete exh's url(s).                                                     
