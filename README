@@ -28,8 +28,8 @@ BASIC USAGE
 
 2 Apply a bot at @BotFather on Telegram. Then retrieve the bot token.
 
-3 Please copy all the content in "./DLmodules/config.py.template" to a new file naming "config.py" at the same 
-  directory, then view and customize settings.
+3 Please copy all the content in "./DLmodules/config.py.template" to a new file naming "config.py" 
+  at the same directory, then view and customize settings.
 
 4 Run 'tgexhDLbot.py'.
 
