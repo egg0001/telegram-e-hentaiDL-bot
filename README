@@ -9,7 +9,7 @@ MAJOR FEATURES
 2 If the bot encounters any error during download, it would send the report to user in Telegram.
 3 It exploits e-hentai's api service and multi-threading download to improve the working efficiency.
 4 It contains HTTP/HTTPS/socks5 proxy function useful in the territory blocking the access to Telegram 
-  and/or e-hentai (exploiting socks proxy requires requests[socks] module).
+  and/or e-hentai (exploiting socks proxy requires requests[socks] and python-telegram-bot[socks] module).
 
 ENVIRONMENT ADN PYTHON VERSION
 Tested OS: Ubuntu 14.04 and 16.04 (Any OS supporting python3 would be good to go)
