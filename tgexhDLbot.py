@@ -15,6 +15,7 @@ from tgbotconvhandler import ehdownloader
 from tgbotconvhandler import urlanalysisdirect
 from DLmodules import config
 from DLmodules import usermessage
+from DLmodules import regx
 from queue import Queue
 import platform
 import re
@@ -171,7 +172,7 @@ def main():
    '''The bot's initiation sequence.'''
    if config.proxy:
       if config.proxy[0].find('@') != -1:
-         proxyPattern = re.compile(r'''(\w+)\:\/\/(.*)\:(.*)\@(.+)\:(\d+)''')
+         proxyPattern = re.compile(regx.authProxyPattern)
          proxyMatch = proxyPattern.search(config.proxy[0])
          proxyAddress = '{0}://{1}:{2}'.format(proxyMatch.group(1), proxyMatch.group(4), proxyMatch.group(5))
          proxyUsername = proxyMatch.group(2)

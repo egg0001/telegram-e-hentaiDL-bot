@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+#---------tgexhDLbot.py--------------------
+
+authProxyPattern = (r'''(\w+)\:\/\/(.*)\:(.*)\@(.+)\:(\d+)''')
+
 #---------tgbotconvhandler.py--------------
 
 botUrlPattern = (r'''https://[exhentai\-]+\.org/g/\w+/\w+/''')

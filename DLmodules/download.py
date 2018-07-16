@@ -98,10 +98,10 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                                      logger=logger
                                     )
 #    print (htmlContentList[0])
-   pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+   pageContentDict = datafilter.mangadlfilter(htmlContentList[0], url=manga.url)
    if pageContentDict['contentPages']: 
       pass
-   elif manga.exh == False:
+   elif manga.exh == False and pageContentDict['nextPage'] == '':
       # If using e-hentai link could not get any page content result (maybe hided into exh),
       # the program would try to use exh to retrive the gallery (if user cookies could access exh).
       logger.info('Could not retrive any page content in e-h gallery link, try to use exh.')
@@ -113,7 +113,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                                         logger=logger
                                        )
 #    print (htmlContentList[0])
-      pageContentDict = datafilter.mangadlfilter(htmlContentList[0])
+      pageContentDict = datafilter.mangadlfilter(htmlContentList[0], url=manga.url)
    else:
       pass
    # Then retrive the first page of the gallery index.
@@ -123,13 +123,15 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       if errorPageDict.get('contentPages'):
          for ePD in errorPageDict['contentPages']:
             errorPageList.append(ePD[0])
-   if pageContentDict.get('contentPages') and analysisPreviousDLResultDict['completeDownload'] == False:
+#    print (pageContentDict)
+   if ((pageContentDict['contentPages'] != [] or pageContentDict['nextPage'] != -1)
+   and analysisPreviousDLResultDict['completeDownload'] == False):
+      # print (pageContentDict['nextPage'])
       executor = ThreadPoolExecutor(max_workers=config.dlThreadLimit)
       logger.info("Begin to retrive image pages' urls from index pages, this would take a while.")
       # Create a ThreadPoolExecutor object to handle the image download threads.
       logger.info("Begin to retrive images' urls from index pages, this would take a while.")
       while pageContentDict['nextPage']:
-         
          for mP in pageContentDict['contentPages']:
             if errorPageList:
                if mP[0] not in errorPageList:

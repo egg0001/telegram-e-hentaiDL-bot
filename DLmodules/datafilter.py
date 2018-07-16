@@ -96,15 +96,18 @@ def genmangainfoapi(resultJsonDict, exh):
    return mangaInfo
 
 
-def mangadlfilter(htmlContent):
+def mangadlfilter(htmlContent, url=None):
    '''The mangadownloadctl function would exploit this function to retrive every page's url and 
-      the url of next index page from the gallery's current index page.'''
+      the url of next index page from the gallery's current index page. Moreover, while the the 
+      gallery constains 'Content Warning' key words, it would generate the conform to view link
+      as the next pages link'''
    pageContentDict = {'nextPage': '',
                       'contentPages': []}
    mangaPagePattern = re.compile(regx.mangaPagePattern)
    nextPagePattern = re.compile(regx.nextPagePattern)
    mangaPages = mangaPagePattern.finditer(htmlContent)
    nextPage = nextPagePattern.search(htmlContent)
+   contentWarningPattern = re.search('Content Warning', htmlContent)
    try:
       pageContentDict['nextPage'] = nextPage.group(1)
    except AttributeError:
@@ -113,6 +116,9 @@ def mangadlfilter(htmlContent):
    for mP in mangaPages:
       pageContentDict['contentPages'].append((mP.group(1), mP.group()))
 #    print (pageContentDict)
+   if (pageContentDict['contentPages'] == [] and pageContentDict['nextPage'] == -1
+   and bool(contentWarningPattern) == True and url):
+      pageContentDict['nextPage'] = "{0}?nw=session".format(url)
    return pageContentDict
 
 
