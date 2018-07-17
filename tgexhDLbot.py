@@ -19,6 +19,7 @@ from DLmodules import regx
 from queue import Queue
 import platform
 import re
+from functools import wraps
 
 
 def state(bot, update, user_data, chat_data):
@@ -35,8 +36,7 @@ def state(bot, update, user_data, chat_data):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=update.message.chat_id,
-                     logger=logger
+                     chat_id=update.message.chat_id
                     )
       Ttime = time.asctime(time.localtime()) 
       treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
@@ -66,8 +66,7 @@ def state(bot, update, user_data, chat_data):
                     }
       channelmessage(bot=bot, 
                      messageDict=messageDict, 
-                     chat_id=update.message.chat_id,
-                     logger=logger
+                     chat_id=update.message.chat_id
                     )
    return ConversationHandler.END
       
@@ -101,16 +100,14 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                           }
             channelmessage(bot=bot, 
                            messageDict=messageDict, 
-                           chat_id=chat_id,
-                           logger=logger
+                           chat_id=chat_id
                            )        
          messageDict = {"messageContent": [manga.title],
                         'messageCate': 'message',
                        }
          channelmessage(bot=bot, 
                         messageDict=messageDict, 
-                        chat_id=chat_id,
-                        logger=logger
+                        chat_id=chat_id
                         )   
       else:
          pass    
@@ -122,37 +119,41 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                           }
             channelmessage(bot=bot, 
                            messageDict=messageDict, 
-                           chat_id=chat_id,
-                           logger=logger
+                           chat_id=chat_id
                           )             
    logger.info('All results has been sent.')
 
-
-def channelmessage(bot, messageDict, chat_id, logger):
-   ''' All the functions containing user interaction would use this function to send messand to user.
-       It has the basic error and retry ability. '''
-   messageContent = messageDict["messageContent"]
-   for mC in messageContent:
-      err = 0
+def retryDocorator(func):
+   '''This simple retry decorator provides a try-except looping to the channelmessage function to
+      overcome network fluctuation.'''
+   @wraps(func)
+   def wrapperFunction(*args, **kwargs):
+      err = 0 
       for err in range(config.messageTimeOutRetry):
          try:
-            if messageDict['messageCate'] == 'photo':
-               mC.seek(0)
-               bot.send_photo(chat_id=chat_id, photo=mC)
-            else:
-               bot.send_message(chat_id=chat_id, text=mC)
-         except:
-            err += 1
-            time.sleep(1)
-            logger.warning('Message timeout {0}'.format(err))
-         else:
-
-            time.sleep(0.5)
-            err = 0
+            res = func(*args, **kwargs)
             break
+         except Exception as error:
+           err += 1
+           logger.exception(str(error))
       else:
-         logger.warning('Message retry limitation reached')
-         err = 0
+         logger.exception('Message retry limitation reached')
+         res = None
+      return res
+   return wrapperFunction
+
+@retryDocorator
+def channelmessage(bot, messageDict, chat_id):
+   ''' All the functions containing user interaction would use this function to send messand 
+       to user.'''
+   messageContent = messageDict["messageContent"]
+   for mC in messageContent:
+      if messageDict['messageCate'] == 'photo':
+         mC.seek(0)
+         bot.send_photo(chat_id=chat_id, photo=mC)
+      else:
+         bot.send_message(chat_id=chat_id, text=mC)
+   return None
 
 def cancel(bot, update, user_data, chat_data):  
    '''Bot's cancel function, useless.'''
@@ -203,7 +204,7 @@ def main():
    updater.idle()
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(module)s.%(funcName)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.CRITICAL) # Rule out the requests' common loggings since
                                                          # they are useless. 

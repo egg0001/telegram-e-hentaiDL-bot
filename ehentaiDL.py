@@ -16,7 +16,7 @@ import gc
 import re
 
 class urlAnalysis():
-   '''This Class and its objects contain a list of galleries' urls, the boolen value(exh) to 
+   '''This class and its objects contain a list of galleries' urls, the boolen value(exh) to 
       indicate the source (e-h or exh) of the galleries. Then, the first method (retriveInfoFormAPI)
       would retrive galleries' inforation from e-h's API and store it in the attribute (apiInfoDict)
       The seconde method (mangaObjGen) would generate some Manga objects preparing to download.'''
@@ -86,7 +86,7 @@ class urlAnalysis():
       return self
 
 class mangaInfo():
-   '''This class and each of its objects contain the information of every gallery and a method to 
+   '''This class and each of its objects contains the information of every gallery and a method to 
       download the all the content of every gallery.'''
    __slots__ = ('url', 'category', 'title', 'mangaData', 'previewImage', 'dlErrorDict', 'exh')
 
