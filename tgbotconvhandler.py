@@ -42,8 +42,8 @@ def ehdownloader(urlResultList, logger):
    dloptDict = dloptgenerate.dloptgenerate(urls=urlResultList, logger=logger) 
    # This dloptDict contains an object storing the download variable and the error messages 
    # while generating this object.
-   resultObjList = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger)
+   mangaObjList = Spidercontrolasfunc(dloptDict=dloptDict, logger=logger)
    # This is the entry of the download control function.
    logger.info("Download completed.")
-   return resultObjList
+   return mangaObjList
 

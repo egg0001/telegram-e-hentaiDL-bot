@@ -91,9 +91,9 @@ def threadContainor(threadQ, threadLimit=1):
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
        sending function to deal with user's requests.'''
-   resultObjList = ehdownloader(urlResultList=urlResultList, logger=logger)
+   mangaObjList = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
-   for manga in resultObjList:
+   for manga in mangaObjList:
       if manga.title != 'errorStoreMangaObj':
          if manga.previewImage:
             messageDict = {"messageContent": [manga.previewImage],

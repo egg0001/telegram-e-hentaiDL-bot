@@ -137,7 +137,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
                   continue
-            threadPoolList.append(executor.submit(fn=mangadownload,
+            threadPoolList.append(executor.submit(fn=mangaPageDownload,
                                                   url=mP[1],
                                                   mangasession=mangasession,
                                                   filename=mP[0],
@@ -234,7 +234,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       manga.previewImage =(analysisPreviousDLResultDict['previewImageDict'][manga.title])
    else:
       manga.previewImage = None
-      logger.warning('{0} does not contain any page, maybe deleted'.format(manga.url))
+      logger.error('{0} does not contain any page, maybe deleted'.format(manga.url))
       manga.dlErrorDict.update({'galleryError': usermessage.galleryError})
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
@@ -243,7 +243,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
 
    return manga
 
-def mangadownload(url, mangasession, filename, path, logger, q):
+def mangaPageDownload(url, mangasession, filename, path, logger, q):
    ''' This function would retrive the image url from the webpage and then download it on 
        the disk. To handle the network fluctuation, including the empty htmlpage, the error
        network status codes and the corrupted images, it exploits a combination of for loop 
