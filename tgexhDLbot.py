@@ -123,23 +123,23 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                           )             
    logger.info('All results has been sent.')
 
-def retryDocorator(func):
+def retryDocorator(func, retry=config.messageTimeOutRetry):
    '''This simple retry decorator provides a try-except looping to the channelmessage function to
       overcome network fluctuation.'''
    @wraps(func)
    def wrapperFunction(*args, **kwargs):
       err = 0 
-      for err in range(config.messageTimeOutRetry):
+      for err in range(retry):
          try:
-            res = func(*args, **kwargs)
+            func(*args, **kwargs)
             break
          except Exception as error:
            err += 1
-           logger.exception(str(error))
+           logger.warning(str(error))
       else:
-         logger.exception('Message retry limitation reached')
-         res = None
-      return res
+         logger.warning('Retry limitation reached')
+         
+      return
    return wrapperFunction
 
 @retryDocorator

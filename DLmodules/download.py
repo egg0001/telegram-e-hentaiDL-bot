@@ -10,7 +10,8 @@ from . import config
 from . import dloptgenerate
 from . import datafilter
 from . import usermessage
-from . import regx 
+from . import regx
+from .theLogger import loggerGene
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from io import BytesIO
@@ -137,7 +138,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
                   continue
-            threadPoolList.append(executor.submit(fn=mangadownload,
+            threadPoolList.append(executor.submit(fn=mangaPageDownload,
                                                   url=mP[1],
                                                   mangasession=mangasession,
                                                   filename=mP[0],
@@ -186,7 +187,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
          temp = q.get()
          tempErrDict[manga.url].update(temp)
       if tempErrDict[manga.url].get('Download error'):
-         logger.error("Encountered a critical error while downloading images of {0}. ".format(manga.url) +
+         logger.warning("Encountered a critical error while downloading images of {0}. ".format(manga.url) +
                       "An error log would be deployed; and the zip function would be disabled.")
          dlErrorDict.update(tempErrDict[manga.url])
       # Retrive the first page as the preview page, store it as an attribute in the manga object in the memory. 
@@ -234,7 +235,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       manga.previewImage =(analysisPreviousDLResultDict['previewImageDict'][manga.title])
    else:
       manga.previewImage = None
-      logger.error('{0} does not contain any page, maybe deleted'.format(manga.url))
+      logger.warning('{0} does not contain any page, maybe deleted'.format(manga.url))
       manga.dlErrorDict.update({'galleryError': usermessage.galleryError})
 #    print (resultDict['dlErrorDict'])
 #    print (dlopt.forceZip)
@@ -243,7 +244,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
 
    return manga
 
-def mangadownload(url, mangasession, filename, path, logger, q):
+def mangaPageDownload(url, mangasession, filename, path, logger, q):
    ''' This function would retrive the image url from the webpage and then download it on 
        the disk. To handle the network fluctuation, including the empty htmlpage, the error
        network status codes and the corrupted images, it exploits a combination of for loop 
@@ -289,7 +290,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          else:
             raise downloadStatusCodeError('Download status code error - {0}.'.format(previewimage.status_code))
       except Exception as error:
-         logger.exception('{0} has encounter an error {1}'.format(url, error))
+         logger.warning('{0} has encounter an error {1}'.format(url, error))
          errorMessage[url].update({err: str(error)})
          err += 1
          time.sleep(0.5)
@@ -297,7 +298,7 @@ def mangadownload(url, mangasession, filename, path, logger, q):
          err = 0
          break
    else:
-      logger.exception("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
+      logger.warning("{0}'s error achieve {1} times, discarded.".format(url, config.timeoutRetry))
       errorMessage[url].update({'Download error': 'Reached maximum retry counts while download this page.'})
    if errorMessage[url]:
       q.put(errorMessage)
@@ -339,7 +340,7 @@ def analysisPreviousDL(dlPath, url, title, mangaData, logger):
                fileList.sort()
                previewImage = fileList[0]
                with open('{0}{1}/{2}'.format(dlPath, title, previewImage), 'rb') as fo:
-                  print ('{0}{1}/{2}'.format(dlPath, title, previewImage))
+                  # print ('{0}{1}/{2}'.format(dlPath, title, previewImage))
                   imageByte = fo.read()
                bio = BytesIO(imageByte)
                bio.name = title
@@ -369,7 +370,7 @@ def analysisPreviousDL(dlPath, url, title, mangaData, logger):
          analysisPreviousDLResultDict['previewImageDict'].update({title: bio})
          analysisPreviousDLResultDict.update({'downloadIssue': False, 'completeDownload': True})
    except Exception as error:
-      logger.error('Raised an error while analyzing errorLog, discard. - {0}'.format(str(error)))
+      logger.exception('Raised an error while analyzing errorLog, discard. - {0}'.format(str(error)))
       analysisPreviousDLResultDict = {'errorPageStr': '',
                                       'downloadIssue': True,
                                       'completeDownload': False,
@@ -414,13 +415,30 @@ def zipmangadir(url, path, title, removeDir, logger):
       logger.info('Gallery files of {0} has been archived.'.format(url))
    return zipErrorDict
 
+def retryDocorator(func, logger=loggerGene(), retry=config.timeoutRetry):
+   '''This simple retry decorator provides a try-except looping to the accesstoehentai function for
+      overcoming network fluctuation.'''
+   def wrapperFunction(*args, **kwargs):
+      err = 0 
+      for err in range(retry):
+         try:
+            resultList = func(*args, **kwargs)
+            break
+         except Exception as error:
+           err += 1
+           logger.warning(str(error))
+      else:
+         logger.warning('Retry limitation reached')
+         resultList = []
+      return resultList
+   return wrapperFunction
+
+@retryDocorator
 def accesstoehentai(method, mangasession, stop, logger, urls=None):
    ''' Most of the parts of the  program would use this function to retrive the htmlpage, and galleries'
        information by using e-h's API. It provides two methods to access e-hentai/exhentai. The GET 
        methot would return the htmlpage; and the POST method would extract the gallery ID and gallery
-       key to generate the json payload sending exploit e-h's API then return the API's result. It 
-       also exploits a combination of for loop and try-except syntax to deal with the unstable network.'''
-#    print (urls)
+       key to generate the json payload sending exploit e-h's API then return the API's result.'''
    resultList = []
    if method == 'get':
       inputInfo = urls
@@ -439,29 +457,13 @@ def accesstoehentai(method, mangasession, stop, logger, urls=None):
    else:
       inputInfo = ''
    for ii in inputInfo:
-      err = 0
-      for err in range(config.timeoutRetry):
-         try:
-            if method == 'get':
-               r = mangasession.get(ii)
-               resultList.append(r.text)
-            else:
-            #    if exh == False:
-               r = mangasession.post('https://api.e-hentai.org/api.php', json=ii)
-            #    else:
-            #       r = mangasession.post('https://api .exhentai.org/api.php', json=ii)
-               mangaDictMeta = r.json()
-               resultList.extend(mangaDictMeta['gmetadata'])
-         except:
-            err += 1
-            dloptgenerate.Sleep.Havearest(stop)
-         else:
-            dloptgenerate.Sleep.Havearest(stop)
-            err = 0
-            break
+      if method == 'get':
+         r = mangasession.get(ii)
+         resultList.append(r.text)
       else:
-         logger.error('Network error reached limit, discard.')
-         err = 0
+         r = mangasession.post('https://api.e-hentai.org/api.php', json=ii)
+         mangaDictMeta = r.json()
+         resultList.extend(mangaDictMeta['gmetadata'])
    return resultList
 
 
