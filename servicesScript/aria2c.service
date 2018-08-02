@@ -1,14 +1,14 @@
 [Unit]
- Description=Aria2c download manager
- After=network.target
+Description=Aria2c download manager
+After=network.target
 
     
- [Service]
- Type=simple
- User=root
- ExecStart=/usr/bin/aria2c --conf-path=/path/to/aria2c/aria2c.conf --daemon
- RestartSec=1min
- Restart=on-failure
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/aria2c --conf-path=/path/to/aria2c/aria2c.conf --daemon
+RestartSec=1min
+Restart=on-failure
     
- [Install]
- WantedBy=multi-user.target
+[Install]
+WantedBy=multi-user.target
