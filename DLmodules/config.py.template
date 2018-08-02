@@ -16,6 +16,14 @@ proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e
 messageTimeOutRetry = 5 # The retry limitation for resending messages to user due to Telegram's
                         # timeout error.
 
+hasAria2 = False # If True, user could use aria2c to download megnet links  
+                 # However, this function requires user setup a daemon aria2 as a rpc server
+                 # For more information, please view the /servicesScript folder and use Google.
+
+aria2Server = "http://localhost:6800/rpc"  # The address to access aria2c's rpc server
+
+aria2Token = 'thisisasecret' # The token to access aria2c's rpc service
+
 #----------------Downloader session--------------------------
 
 headers = [{"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",}]

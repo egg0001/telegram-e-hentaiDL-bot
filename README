@@ -2,6 +2,12 @@ Telegram-e-hentai-download-bot
 
 A python Telegram bot receiving galleries urls and downloading galleries.
 
+WHAT'S NEW.
+1 Now the bot supports exploiting aria2c's rpc service to deal with magnet 
+  links. For more information, please view 'servicesScript/' directory.
+  (This directory also contains the bot's systemd service file helping 
+   user to setup this pot as service by exploiting systemd.)
+
 MAJOR FEATURES
 1 While user providing galleries' urls, this bot would download all of them and archive them to 
   zip files (if user allowed) on the user's machine running this bot, including but not limited 
@@ -10,6 +16,7 @@ MAJOR FEATURES
 3 It exploits e-hentai's api service and multi-threading download to improve the working efficiency.
 4 It contains HTTP/HTTPS/socks5 proxy function useful in the territory blocking the access to Telegram 
   and/or e-hentai (exploiting socks proxy requires requests[socks] and python-telegram-bot[socks] module).
+5 It now supports magnet links by exploiting aria2's rpc server.
 
 ENVIRONMENT ADN PYTHON VERSION
 Tested OS: Ubuntu 14.04 and 16.04 (Any OS supporting python3 would be good to go)

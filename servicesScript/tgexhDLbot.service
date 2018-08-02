@@ -1,0 +1,12 @@
+[Unit]
+Description="tgexhDLbot"
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/the/bot/directory/
+ExecStart=/path/to/the/bot/directory/tgexhDLbot.py
+Restart=on-success
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+This folder contains some service files as well as a aria2c's config file.
+These files would be useful for users hoping to setup a bot service on a 
+Linux server and even setup a aria2c rpc service to deal with magnet links.
+However, exploiting these files requires user has some basic Linux and 
+systemd knowledge. User should view every file to modify its settings. For 
+more information, please Google. 

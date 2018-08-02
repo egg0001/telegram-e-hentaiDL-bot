@@ -14,17 +14,23 @@ def urlanalysisdirect(user_data, logger, chat_data=None):
    ''' This function identifies the user's  identity and exploit regx to analyze user's 
        request (gallery(s)' urls) and pass the result to the bot's major function.'''
    
-   outDict = {'identified': False, 'urlComfirm': False, 'outputTextList': [], 'urlResultList': []}
+   outDict = {'identified': False, 'outputTextList': [], 'urlResultList': [], 'ehUrl': False, 'magnetLink': False}
    if user_data['actualusername'] == config.telegramUsername:
       outDict['identified'] = True
       urlPattern = re.compile(regx.botUrlPattern)
       urlResult = urlPattern.finditer(user_data['userMessage'])
+      magnetResult = re.search(regx.botMagnetPattern, user_data['userMessage'])
       for uR in urlResult:
          outDict['urlResultList'].append(uR.group())
-      if outDict['urlResultList']:
-         outDict['urlComfirm'] = True
-         logger.info('Collected {0} url(s), send the result to actual download function'.format(len(outDict['urlResultList'])))
+      if outDict['urlResultList']: 
+         outDict['ehUrl'] = True
+         logger.info('Collected {0} url(s), send the result to actual download function.'.format(len(outDict['urlResultList'])))
          outDict['outputTextList'].append(usermessage.urlComform.format(len(outDict['urlResultList'])))
+      elif magnetResult:
+         logger.info('Collected a megnet link, send the result to actual download function.')
+         outDict['urlResultList'].append(magnetResult.group())
+         outDict['magnetLink'] = True
+         outDict['outputTextList'].append(usermessage.magnetLinkConform)
       else:
          logger.info('Could not find any urls, the inputmessage is ({0})'.format(user_data['userMessage']))
          outDict['outputTextList'].append(usermessage.urlNotFound)

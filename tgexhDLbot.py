@@ -7,9 +7,9 @@ import time
 import datetime
 from multiprocessing import Process
 from threading import Thread
-from telegram.ext import Updater
+from telegram.ext import Updater 
 from telegram.ext import MessageHandler 
-from telegram.ext import Filters
+from telegram.ext import Filters 
 from telegram.ext import ConversationHandler
 from tgbotconvhandler import ehdownloader
 from tgbotconvhandler import urlanalysisdirect
@@ -20,6 +20,7 @@ from queue import Queue
 import platform
 import re
 from functools import wraps
+from xmlrpc import client
 
 
 def state(bot, update, user_data, chat_data):
@@ -30,7 +31,7 @@ def state(bot, update, user_data, chat_data):
                      'userMessage': update.message.text})
    logger.info("Actual username is %s.", str(update.message.from_user.username))
    outDict = urlanalysisdirect(user_data=user_data, logger=logger)
-   if outDict['identified'] == True and outDict['urlComfirm'] == True:
+   if outDict['identified'] == True and outDict['ehUrl'] == True:
       messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
                     }
@@ -39,11 +40,11 @@ def state(bot, update, user_data, chat_data):
                      chat_id=update.message.chat_id
                     )
       Ttime = time.asctime(time.localtime()) 
-      treadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
+      threadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
       if platform.system() == 'Windows':   # Windows does not allow the daemon thread to initiate a 
                                            # new child process. 
          t = Thread(target=downloadfunc, 
-                    name=treadName, 
+                    name=threadName, 
                     kwargs={'bot':bot,
                             'urlResultList': outDict['urlResultList'], 
                             'logger': logger,
@@ -53,13 +54,41 @@ def state(bot, update, user_data, chat_data):
          threadQ.put(t)      
       else:
          t = Process(target=downloadfunc, 
-                     name=treadName, 
+                     name=threadName, 
                      kwargs={'bot':bot,
                              'urlResultList': outDict['urlResultList'], 
                              'logger': logger,
                              "chat_id": update.message.chat_id,
                             })
-         threadQ.put(t)           
+         threadQ.put(t)  
+   elif outDict['identified'] == True and outDict['magnetLink'] == True and config.hasAria2 == True:
+      messageDict = {"messageContent": outDict["outputTextList"],
+                     'messageCate': 'message',
+                    }
+      channelmessage(bot=bot, 
+                     messageDict=messageDict, 
+                     chat_id=update.message.chat_id
+                    )
+      Ttime = time.asctime(time.localtime()) 
+      threadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)  
+      if platform.system() == 'Windows':   # Windows does not allow the daemon thread to initiate a 
+                                           # new child process.
+         t = Thread(target=magnetLinkDownload, 
+                    name=threadName,
+                    kwargs={'bot':bot, 
+                            'urlResultList': outDict['urlResultList'],
+                            'logger': logger,
+                            'chat_id': update.message.chat_id})
+         threadQ.put(t)
+      else:
+         t = Process(target=magnetLinkDownload, 
+                     name=threadName, 
+                     kwargs={'bot':bot,
+                             'urlResultList': outDict['urlResultList'], 
+                             'logger': logger,
+                             "chat_id": update.message.chat_id,
+                            })
+         threadQ.put(t)  
    else:
       messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
@@ -85,7 +114,31 @@ def threadContainor(threadQ, threadLimit=1):
       if threadCounter == threadLimit:  # This condition limit the amount of threads running simultaneously.
          t.join() 
          threadCounter = 0
-      
+
+def magnetLinkDownload(bot, urlResultList, logger, chat_id):
+   '''This function exploits xmlprc to send command to aria2c. However, it seems that after sending 
+      the commend, it would trigger a strange bug in python-telegram-bot. To prevent this situation, 
+      the bot would not send any message currently.'''
+   logger.info('magnetLinkDownload initiated.')
+   resultStrList = []
+   try:
+      s = client.ServerProxy(config.aria2Server)
+      token = 'token:{0}'.format(config.aria2Token)
+      s.aria2.addUri(token, urlResultList)
+      resultStrList.append('Succeed')
+      logger.info('magnetLinkDownload completed.')
+   except Exception as error:
+      logger.Exception('Encountered an error while communicating with aria2 - {0}'.format(str(error)))
+      resultStrList.append(str(error))
+
+#    messageDict = {"messageContent": resultStrList,
+#                   'messageCate': 'message',
+#                   }
+#    channelmessage(bot=bot, 
+#                     messageDict=messageDict, 
+#                     chat_id=chat_id
+#                     )
+
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
@@ -128,6 +181,7 @@ def retryDocorator(func, retry=config.messageTimeOutRetry):
       overcome network fluctuation.'''
    @wraps(func)
    def wrapperFunction(*args, **kwargs):
+    #   print ('outer func')
       err = 0 
       for err in range(retry):
          try:
@@ -139,19 +193,23 @@ def retryDocorator(func, retry=config.messageTimeOutRetry):
       else:
          logger.warning('Retry limitation reached')
          
-      return
+      return None
    return wrapperFunction
 
 @retryDocorator
 def channelmessage(bot, messageDict, chat_id):
    ''' All the functions containing user interaction would use this function to send messand 
        to user.'''
+#    print ('inner func')
    messageContent = messageDict["messageContent"]
    for mC in messageContent:
       if messageDict['messageCate'] == 'photo':
          mC.seek(0)
          bot.send_photo(chat_id=chat_id, photo=mC)
       else:
+        #  print ('send message')
+        #  print (mC)
+        #  print (chat_id)
          bot.send_message(chat_id=chat_id, text=mC)
    return None
 
