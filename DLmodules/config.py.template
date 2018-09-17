@@ -16,13 +16,44 @@ proxy = [] # The HTTP/HTTPS proxy function to help user to access Telegram and e
 messageTimeOutRetry = 5 # The retry limitation for resending messages to user due to Telegram's
                         # timeout error.
 
+#-------------------bittorrent client general config
+
+dlPath = '/path/to/bt/download/'  # this is the bittorrent's download path
+
+retriveDelay = 3  # This variable is the delay (second) for the program to retrieve torrent data (files)
+                  # after adding the magnet link to bittorrent client since the client should take some
+                  # time to download the link's data.
+
+
+retriveRetry = 5  # This variable controls howmany times the program trying to retrieve the data from client
+                  # since in rare condition the meta data of the link could not be download quick enough.
+
+#----------------aria2c session----------------------------
+
 hasAria2 = False # If True, user could use aria2c to download megnet links  
                  # However, this function requires user setup a daemon aria2 as a rpc server
                  # For more information, please view the /servicesScript folder and use Google.
+                 # If both hasaria2 and hasQbittorrent are true, this bot would use qbittorrent.
 
 aria2Server = "http://localhost:6800/rpc"  # The address to access aria2c's rpc server
 
 aria2Token = 'thisisasecret' # The token to access aria2c's rpc service
+
+#--------------qbittorrent session-------------------------
+
+hasQbittorrent = False # If True, user could use qbittorrent's WebUI to download megnet links.
+                       # However, this function requires user setup a qbittorrent client.
+                       # If both hasaria2 and hasQbittorrent are true, this bot would use qbittorrent.
+
+
+clientAddress = "http://127.0.0.1:8080"  # The address of qbittorrent's WebUI.
+
+
+user = 'Your qbt WebUI username'  # Qbittorrent's user name
+
+password = 'Your qbt WebUI password' # ...And password
+
+
 
 #----------------Downloader session--------------------------
 
@@ -45,6 +76,8 @@ forceCookiesEH = True   # While True, even user's cookies could not access exhen
 
 path = "./mangaDL/"     # The path to storage the downloaded galleries.
  
+dlPath = '/path/to/bt/download/' # This path is the bittorrent download path to aria2c or qbittorrent.
+
 timeoutRetry = 3        # The retry limitation while encountering issues in the page download function.
 
 useEntitle = False      # While True, the bot would exploit English title to be the directory name in  

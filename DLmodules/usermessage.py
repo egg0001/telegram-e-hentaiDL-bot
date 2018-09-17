@@ -13,13 +13,17 @@ urlComform = ('Received {0} gallery url(s). \nNow begin to download the content.
               'Once the download completed, you will receive a report.'
              )
 
-magnetLinkConform = ('Received a magnetLink. Now send it to aria2c by exploiting xmlrpc service.\n' +
-                     'If aria2c received this link successfully, a download ID would be returned.')
+magnetLinkConform = ('Received a magnetLink. Now send it to bittorrent client')
+
+magnetResultMessage = ('Torrent {0} has been added bittorrent client.')
 
 urlNotFound = 'Could not find any gallery url, please check and re-input.'
 
 gidError = 'Encountered an error gid: {0}'
-#-------------------------------------------------------
+#------------------magnet download session---------------------
+
+emptyFileListError = ('Could not retrive file list for this link, maybe still '+
+                      'downloading meta data.')
 
 #-----------------dloptgenerate session---------------------
 

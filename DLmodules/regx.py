@@ -7,7 +7,7 @@ authProxyPattern = (r'''(\w+)\:\/\/(.*)\:(.*)\@(.+)\:(\d+)''')
 #---------tgbotconvhandler.py--------------
 
 botUrlPattern = (r'''https://[exhentai\-]+\.org/g/\w+/\w+/''')
-botMagnetPattern = (r'''^magnet\:\?xt\=.+''')
+botMagnetPattern = ('''magnet:''')
 
 #---------datafilter.py--------------------
 

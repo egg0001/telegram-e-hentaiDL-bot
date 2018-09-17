@@ -27,8 +27,15 @@ def urlanalysisdirect(user_data, logger, chat_data=None):
          logger.info('Collected {0} url(s), send the result to actual download function.'.format(len(outDict['urlResultList'])))
          outDict['outputTextList'].append(usermessage.urlComform.format(len(outDict['urlResultList'])))
       elif magnetResult:
-         logger.info('Collected a megnet link, send the result to actual download function.')
-         outDict['urlResultList'].append(magnetResult.group())
+         logger.info('Collected megnet link(s), send the result to actual download function.')
+         linksList=user_data['userMessage'].split(regx.botMagnetPattern)
+         for link in linksList:
+            torrentHashRex = re.search(r'''btih:([a-zA-Z0-9]+)''', link)
+            if torrentHashRex:
+               link = regx.botMagnetPattern + link
+               outDict['urlResultList'].append(link)
+
+        #  outDict['urlResultList'].append(magnetResult.group())
          outDict['magnetLink'] = True
          outDict['outputTextList'].append(usermessage.magnetLinkConform)
       else:
@@ -37,8 +44,6 @@ def urlanalysisdirect(user_data, logger, chat_data=None):
    else:
       logger.info('User {0} identity denied'.format(user_data["actualusername"]))
       outDict['outputTextList'].append(usermessage.denyMessage)
-
-
    return outDict
 
 

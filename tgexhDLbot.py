@@ -16,11 +16,12 @@ from tgbotconvhandler import urlanalysisdirect
 from DLmodules import config
 from DLmodules import usermessage
 from DLmodules import regx
+from DLmodules import magnet
 from queue import Queue
 import platform
 import re
 from functools import wraps
-from xmlrpc import client
+
 
 
 def state(bot, update, user_data, chat_data):
@@ -61,7 +62,9 @@ def state(bot, update, user_data, chat_data):
                              "chat_id": update.message.chat_id,
                             })
          threadQ.put(t)  
-   elif outDict['identified'] == True and outDict['magnetLink'] == True and config.hasAria2 == True:
+   elif (outDict['identified'] == True and 
+        outDict['magnetLink'] == True and 
+        (config.hasAria2 == True or config.hasQbittorrent == True)):
       messageDict = {"messageContent": outDict["outputTextList"],
                      'messageCate': 'message',
                     }
@@ -120,24 +123,33 @@ def magnetLinkDownload(bot, urlResultList, logger, chat_id):
       the commend, it would trigger a strange bug in python-telegram-bot. To prevent this situation, 
       the bot would not send any message currently.'''
    logger.info('magnetLinkDownload initiated.')
-   resultStrList = []
-   try:
-      s = client.ServerProxy(config.aria2Server)
-      token = 'token:{0}'.format(config.aria2Token)
-      s.aria2.addUri(token, urlResultList)
-      resultStrList.append('Succeed')
-      logger.info('magnetLinkDownload completed.')
-   except Exception as error:
-      logger.Exception('Encountered an error while communicating with aria2 - {0}'.format(str(error)))
-      resultStrList.append(str(error))
+   if config.hasQbittorrent == True:
+      torrentList = magnet.torrentDownloadqQbt(magnetLinkList=urlResultList,
+                                               logger=logger)
+   else:
+      torrentList = magnet.torrentDownloadAria2c(magnetLinkList=urlResultList,
+                                                 logger=logger)
+   for torrent in torrentList:
+      messageList = []
+      messageList.append(usermessage.magnetResultMessage.format(torrent.hash))
+      tempFileList = []
+      if torrent.error:
+         messageList.append(torrent.error)
+      for file in torrent.fileList:
+         tempFileList.append(file)
+         if len(tempFileList) >=4:
+            messageList.append(tempFileList)
+            tempFileList = []
 
-#    messageDict = {"messageContent": resultStrList,
-#                   'messageCate': 'message',
-#                   }
-#    channelmessage(bot=bot, 
-#                     messageDict=messageDict, 
-#                     chat_id=chat_id
-#                     )
+      if tempFileList:
+         messageList.append(tempFileList)
+      messageDict = {"messageContent": messageList,
+                     'messageCate': 'message',
+                     }
+      channelmessage(bot=bot, 
+                     messageDict=messageDict, 
+                     chat_id=chat_id
+                     )
 
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
