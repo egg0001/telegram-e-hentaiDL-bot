@@ -17,6 +17,7 @@ from DLmodules import config
 from DLmodules import usermessage
 from DLmodules import regx
 from DLmodules import magnet
+from DLmodules.sendMessage import telegramMessage
 from queue import Queue
 import platform
 import re
@@ -33,18 +34,9 @@ def state(bot, update, user_data, chat_data):
    logger.info("Actual username is %s.", str(update.message.from_user.username))
    outDict = urlanalysisdirect(user_data=user_data, logger=logger)
    if outDict['identified'] == True and outDict['ehUrl'] == True:
-      messageDict = {"messageContent": outDict["outputTextList"],
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=update.message.chat_id
-                    )
       Ttime = time.asctime(time.localtime()) 
       threadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)
-      if platform.system() == 'Windows':   # Windows does not allow the daemon thread to initiate a 
-                                           # new child process. 
-         t = Thread(target=downloadfunc, 
+      t = Thread(target=downloadfunc, 
                     name=threadName, 
                     kwargs={'bot':bot,
                             'urlResultList': outDict['urlResultList'], 
@@ -52,54 +44,30 @@ def state(bot, update, user_data, chat_data):
                             "chat_id": update.message.chat_id,
                             }
                     )  
-         threadQ.put(t)      
-      else:
-         t = Process(target=downloadfunc, 
-                     name=threadName, 
-                     kwargs={'bot':bot,
-                             'urlResultList': outDict['urlResultList'], 
-                             'logger': logger,
-                             "chat_id": update.message.chat_id,
-                            })
-         threadQ.put(t)  
+      threadQ.put(t)      
+
    elif (outDict['identified'] == True and 
         outDict['magnetLink'] == True and 
         (config.hasAria2 == True or config.hasQbittorrent == True)):
-      messageDict = {"messageContent": outDict["outputTextList"],
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=update.message.chat_id
-                    )
       Ttime = time.asctime(time.localtime()) 
       threadName = '{0}.{1}'.format(str(update.message.from_user.username), Ttime)  
-      if platform.system() == 'Windows':   # Windows does not allow the daemon thread to initiate a 
-                                           # new child process.
-         t = Thread(target=magnetLinkDownload, 
-                    name=threadName,
-                    kwargs={'bot':bot, 
-                            'urlResultList': outDict['urlResultList'],
-                            'logger': logger,
-                            'chat_id': update.message.chat_id})
-         threadQ.put(t)
-      else:
-         t = Process(target=magnetLinkDownload, 
-                     name=threadName, 
-                     kwargs={'bot':bot,
-                             'urlResultList': outDict['urlResultList'], 
-                             'logger': logger,
-                             "chat_id": update.message.chat_id,
-                            })
-         threadQ.put(t)  
+ 
+      t = Thread(target=magnetLinkDownload, 
+                 name=threadName,
+                 kwargs={'bot':bot, 
+                         'urlResultList': outDict['urlResultList'],
+                         'logger': logger,
+                         'chat_id': update.message.chat_id})
+      threadQ.put(t)
+
    else:
-      messageDict = {"messageContent": outDict["outputTextList"],
-                     'messageCate': 'message',
-                    }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=update.message.chat_id
-                    )
+      pass
+   message = telegramMessage(bot=bot, 
+                             chat_id=update.message.chat_id, 
+                             messageContent=outDict["outputTextList"],
+                             messageType='message')
+   retryDocorator(message.messageSend())
+      
    return ConversationHandler.END
       
 def threadContainor(threadQ, threadLimit=1):
@@ -119,9 +87,7 @@ def threadContainor(threadQ, threadLimit=1):
          threadCounter = 0
 
 def magnetLinkDownload(bot, urlResultList, logger, chat_id):
-   '''This function exploits xmlprc to send command to aria2c. However, it seems that after sending 
-      the commend, it would trigger a strange bug in python-telegram-bot. To prevent this situation, 
-      the bot would not send any message currently.'''
+   '''This function exploits xmlprc to send command to aria2c or qbittorrent'''
    logger.info('magnetLinkDownload initiated.')
    if config.hasQbittorrent == True:
       torrentList = magnet.torrentDownloadqQbt(magnetLinkList=urlResultList,
@@ -138,54 +104,53 @@ def magnetLinkDownload(bot, urlResultList, logger, chat_id):
       for file in torrent.fileList:
          tempFileList.append(file)
          if len(tempFileList) >=4:
+            for file in tempFileList:
+               messageList.append(file)
             messageList.append(tempFileList)
             tempFileList = []
 
       if tempFileList:
-         messageList.append(tempFileList)
-      messageDict = {"messageContent": messageList,
-                     'messageCate': 'message',
-                     }
-      channelmessage(bot=bot, 
-                     messageDict=messageDict, 
-                     chat_id=chat_id
-                     )
-
+         for file in tempFileList:
+            messageList.append(file)
+      torrentMessage = telegramMessage(bot=bot, 
+                                       chat_id=chat_id, 
+                                       messageContent=messageList,
+                                       messageType='message')
+      retryDocorator(torrentMessage.messageSend())
 
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
        sending function to deal with user's requests.'''
    mangaObjList = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
+   messageObjList = []
    for manga in mangaObjList:
       if manga.title != 'errorStoreMangaObj':
          if manga.previewImage:
-            messageDict = {"messageContent": [manga.previewImage],
-                           'messageCate': 'photo',
-                          }
-            channelmessage(bot=bot, 
-                           messageDict=messageDict, 
-                           chat_id=chat_id
-                           )        
-         messageDict = {"messageContent": [manga.title],
-                        'messageCate': 'message',
-                       }
-         channelmessage(bot=bot, 
-                        messageDict=messageDict, 
-                        chat_id=chat_id
-                        )   
+            photoMessage = telegramMessage(bot=bot, 
+                                           chat_id=chat_id, 
+                                           messageContent=[manga.previewImage],
+                                           messageType='photo')
+            messageObjList.append(photoMessage)
+            textMessage = telegramMessage(bot=bot, 
+                                          chat_id=chat_id, 
+                                          messageContent=[manga.title],
+                                          messageType='message')
+            messageObjList.append(textMessage)
+            
       else:
          pass    
       if manga.dlErrorDict:
         #  print (manga.dlErrorDict)
          for error in manga.dlErrorDict:
-            messageDict = {"messageContent": [error,  manga.dlErrorDict[error]],
-                           'messageCate': 'message',
-                          }
-            channelmessage(bot=bot, 
-                           messageDict=messageDict, 
-                           chat_id=chat_id
-                          )             
+  
+            errorMessage = telegramMessage(bot=bot, 
+                                           chat_id=chat_id, 
+                                           messageContent=[error,  manga.dlErrorDict[error]],
+                                           messageType='message') 
+            messageObjList.append(errorMessage)
+   for message in messageObjList:
+      retryDocorator(message.messageSend())                               
    logger.info('All results has been sent.')
 
 def retryDocorator(func, retry=config.messageTimeOutRetry):
@@ -207,23 +172,6 @@ def retryDocorator(func, retry=config.messageTimeOutRetry):
          
       return None
    return wrapperFunction
-
-@retryDocorator
-def channelmessage(bot, messageDict, chat_id):
-   ''' All the functions containing user interaction would use this function to send messand 
-       to user.'''
-#    print ('inner func')
-   messageContent = messageDict["messageContent"]
-   for mC in messageContent:
-      if messageDict['messageCate'] == 'photo':
-         mC.seek(0)
-         bot.send_photo(chat_id=chat_id, photo=mC)
-      else:
-        #  print ('send message')
-        #  print (mC)
-        #  print (chat_id)
-         bot.send_message(chat_id=chat_id, text=mC)
-   return None
 
 def cancel(bot, update, user_data, chat_data):  
    '''Bot's cancel function, useless.'''
