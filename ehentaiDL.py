@@ -106,6 +106,7 @@ def mangaspider(urls, mangasession, path, dlopt, logger, errorStoreMangaObj):
    urlAnalysisObjList = []
    mangaObjList = [] # Temporary store the mangaInfo objects.
    toMangaLogDict = {} # Transport the manga information to .mangalog file. 
+   # print (urls)
    for url in urls:
       if url.find('exhentai') != -1:
          urlsDict['exhentai'].append(url)
@@ -160,6 +161,7 @@ def exhcookiestest(mangasessionTest, cookies, forceCookiesEH=False):   #Evaluate
    else:
       r = mangasessionTest.get("https://exhentai.org/")
       htmlContent = r.text
+      # print (htmlContent)
       usefulCookiesDict['exh'] = datafilter.exhtest(htmlContent=htmlContent)
       time.sleep(random.uniform(1,2))
       if usefulCookiesDict['exh'] == False:
@@ -217,6 +219,7 @@ def Spidercontrolasfunc(dloptDict, logger):
    hasEXH = False  
    # This bool variable determin whether the request contains url(s)
    # to exhentai requiring some special methods to view.
+   # print (dloptDict['dlopt'].urls)
    for url in dloptDict['dlopt'].urls:
       if url.find('exhentai') != -1:
          hasEXH = True

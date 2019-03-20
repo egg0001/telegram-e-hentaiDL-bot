@@ -463,6 +463,7 @@ def accesstoehentai(method, mangasession, stop, logger, urls=None):
       else:
          r = mangasession.post('https://api.e-hentai.org/api.php', json=ii)
          mangaDictMeta = r.json()
+         # print (mangaDictMeta)
          resultList.extend(mangaDictMeta['gmetadata'])
    return resultList
 

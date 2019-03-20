@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+
+
 #---------tgexhDLbot.py--------------------
 
 authProxyPattern = (r'''(\w+)\:\/\/(.*)\:(.*)\@(.+)\:(\d+)''')
@@ -10,6 +12,8 @@ botUrlPattern = (r'''https://[exhentai\-]+\.org/g/\w+/\w+/''')
 botMagnetPattern = ('''magnet:''')
 
 #---------datafilter.py--------------------
+
+exhTestPattern = (r"Front")
 
 mangaPagePattern = (r'''https://[a-z\.\-]+\.org\/s\/[a-z0-9]+\/[a-z0-9]+\-([0-9]+)''')
 

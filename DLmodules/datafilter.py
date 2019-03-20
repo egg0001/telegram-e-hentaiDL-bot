@@ -5,7 +5,7 @@ from . import regx
 def exhtest(htmlContent):
    '''Detect whether user's cookies allow to access exhentai by searching
       the "Front page" keyword.''' 
-   pattern = re.compile(r"Front Page")
+   pattern = re.compile(regx.exhTestPattern)
    usefulCookies = False
    if bool(re.search(pattern, htmlContent)):
       usefulCookies = True
