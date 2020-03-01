@@ -3,3 +3,4 @@ requests[socks]
 python-telegram-bot==10.1.0
 python-telegram-bot[socks]
 python-qbittorrent
+PySocks
