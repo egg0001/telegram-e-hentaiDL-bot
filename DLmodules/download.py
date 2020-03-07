@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import subprocess
 import requests
 import time
 import json
@@ -222,6 +223,15 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
       and (len(dlErrorDict) == 0 or dlopt.forceZip == True)):
          zipErrorDict = zipmangadir(url=manga.url, path=dlPath, title=manga.title,
                                     removeDir=dlopt.removeDir, logger=logger)
+         # try:
+         #    split = config.splitArchive
+         # except:
+         #    split = False
+         # if split == True:
+         #    print(dlPath)
+         #    print(manga.title)
+         #    splitZip(url=manga.url, title=manga.title, path=dlPath, logger=logger)
+         
          if zipErrorDict:
             dlErrorDict.update(zipErrorDict)
       if dlErrorDict:
@@ -414,6 +424,27 @@ def zipmangadir(url, path, title, removeDir, logger):
    else:
       logger.info('Gallery files of {0} has been archived.'.format(url))
    return zipErrorDict
+
+def splitZip(path, title, url, logger):
+   logger.info('Splitting zip archive by outer commons')
+   error = None
+   try:
+      try:
+         fileSize = config.fileSize
+      except:
+         fileSize = '45m'
+      if os.path.isdir('{0}split_{1}/'.format(path, title)) == True:
+         rmtree('{0}split_{1}/'.format(path, title))
+      subprocess.run(['mkdir', '{0}split_{1}/'.format(path, title), ], stdout=subprocess.DEVNULL)
+      subprocess.run(['zip', '{0}{1}.zip'.format(path, title), 
+                     '--out', '{0}split_{1}/{2}.zip'.format(path, title, title),
+                     '-s', fileSize],
+                     stdout=subprocess.DEVNULL)
+   except Exception as e:
+      logger.exception('Raise exception while splitting {0}:{1}'.format(e, url))
+      error = e
+   return error
+      
 
 def retryDocorator(func, logger=loggerGene(), retry=config.timeoutRetry):
    '''This simple retry decorator provides a try-except looping to the accesstoehentai function for

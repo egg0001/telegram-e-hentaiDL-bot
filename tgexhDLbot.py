@@ -18,6 +18,7 @@ from DLmodules import usermessage
 from DLmodules import regx
 from DLmodules import magnet
 from DLmodules.sendMessage import telegramMessage
+from DLmodules.download import splitZip
 from queue import Queue
 import platform
 import re
@@ -123,7 +124,7 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
        sending function to deal with user's requests.'''
    mangaObjList = ehdownloader(urlResultList=urlResultList, logger=logger)
    logger.info('Begin to send download result(s).')
-   messageObjList = []
+   # messageObjList = []
    for manga in mangaObjList:
       if manga.title != 'errorStoreMangaObj':
          if manga.previewImage:
@@ -131,13 +132,48 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                                            chat_id=chat_id, 
                                            messageContent=[manga.previewImage],
                                            messageType='photo')
-            messageObjList.append(photoMessage)
+            # messageObjList.append(photoMessage)
+            retryDocorator(photoMessage.photoSend())
             textMessage = telegramMessage(bot=bot, 
                                           chat_id=chat_id, 
                                           messageContent=[manga.title],
                                           messageType='message')
-            messageObjList.append(textMessage)
-            
+            # messageObjList.append(textMessage)
+            retryDocorator(textMessage.messageSend())
+         try:
+            sendArchive = config.sendArchive
+         except:
+            sendArchive = False
+         if sendArchive == True:
+            logger.info('Begin to send {0}. It should take a while.'.format(manga.title))
+            error = splitZip(path=config.path, 
+                             title=manga.title, 
+                             url=manga.url, 
+                             logger=logger)
+            if error == None:
+               splitPath = '{0}{1}/split_{2}/'.format(config.path, manga.category, manga.title)
+               fileList = os.listdir(splitPath) 
+               # print(fileList)
+               try:
+                  for file in fileList:
+                     # print (file)
+                     # print (splitPath)
+                     fileMessage = telegramMessage(bot=bot, 
+                                                   chat_id=chat_id, 
+                                                   messageContent='',
+                                                   messageType='file',
+                                                   fileDir=splitPath,
+                                                   fileName=file)
+                     retryDocorator(fileMessage.fileSend())
+               except Exception as e:
+                  logger.Exception('Raise {0} while sending {1}'.format(e, manga.title))
+                  error = e
+            if error != None:
+               errorMsg = 'Raise {0} while sending {1}'.format(error, manga.title)
+               textMessage = telegramMessage(bot=bot, 
+                                          chat_id=chat_id, 
+                                          messageContent=[errorMsg],
+                                          messageType='message')
       else:
          pass    
       if manga.dlErrorDict:
@@ -148,9 +184,10 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                                            chat_id=chat_id, 
                                            messageContent=[error,  manga.dlErrorDict[error]],
                                            messageType='message') 
-            messageObjList.append(errorMessage)
-   for message in messageObjList:
-      retryDocorator(message.messageSend())                               
+            # messageObjList.append(errorMessage)
+            retryDocorator(errorMessage.messageSend())
+   # for message in messageObjList:
+   #    retryDocorator(message.messageSend())                               
    logger.info('All results has been sent.')
 
 def retryDocorator(func, retry=config.messageTimeOutRetry):

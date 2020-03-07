@@ -97,3 +97,14 @@ Zip = True              # While True, the bot would archive the downloaded galle
 forceZip = False        # While True, the bot would zip the error containing download galleries.
 
 removeDir = True        # While True, the bot would delete the downloaded galleries' folders after archived. 
+
+#---------------------------send archive---------------------------------
+sendArchive = False # While True, the bot would send the galleries to user.
+                   # This should take a while due to the limitation of upload speed (100 KB/S) of bot to Telegram server.
+                   # This function is Linux only and relies on 'zip' package
+
+fileSize ='45m'    # Defult file size splitting galleries, it should less than 50 M
+
+delay = 600        # Delay (second) determines the time allowing the bot sending file.
+                   # If the bot does not sucessfully send files after delay, the bot would raise
+                   # timeout exception.
