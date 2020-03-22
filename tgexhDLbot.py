@@ -119,6 +119,36 @@ def magnetLinkDownload(bot, urlResultList, logger, chat_id):
                                        messageType='message')
       retryDocorator(torrentMessage.messageSend())
 
+
+def sendFiles(bot, chat_id, fileDir, fileName, manga, logger, messageType='file', error=None):
+
+
+   # fileList = os.listdir(splitPath) 
+   # print(fileName)
+   try:
+
+      fileMessage = telegramMessage(bot=bot, 
+                                                   chat_id=chat_id, 
+                                                   messageContent='',
+                                                   messageType='file',
+                                                   fileDir=fileDir,
+                                                   fileName=fileName)
+      retryDocorator(fileMessage.fileSend())
+   except Exception as e:
+      logger.Exception('Raise {0} while sending {1}'.format(e, manga.title))
+      error = e
+   if error != None:
+      errorMsg = 'Raise {0} while sending {1}'.format(error, manga.title)
+      textMessage = telegramMessage(bot=bot, 
+                                          chat_id=chat_id, 
+                                          messageContent=[errorMsg],
+                                          messageType='message')
+      retryDocorator(textMessage.messageSend())
+
+
+
+
+
 def downloadfunc(bot, urlResultList, logger, chat_id):
    ''' The bot's major function would call this download and result 
        sending function to deal with user's requests.'''
@@ -146,7 +176,8 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
             sendArchive = False
          if sendArchive == True:
             logger.info('Begin to send {0}. It should take a while.'.format(manga.title))
-            error = splitZip(path=config.path, 
+            error = splitZip(path=config.path,
+                             category=manga.category, 
                              title=manga.title, 
                              url=manga.url, 
                              logger=logger)
@@ -158,22 +189,45 @@ def downloadfunc(bot, urlResultList, logger, chat_id):
                   for file in fileList:
                      # print (file)
                      # print (splitPath)
-                     fileMessage = telegramMessage(bot=bot, 
-                                                   chat_id=chat_id, 
-                                                   messageContent='',
-                                                   messageType='file',
-                                                   fileDir=splitPath,
-                                                   fileName=file)
-                     retryDocorator(fileMessage.fileSend())
+                     # fileMessage = telegramMessage(bot=bot, 
+                     #                               chat_id=chat_id, 
+                     #                               messageContent='',
+                     #                               messageType='file',
+                     #                               fileDir=splitPath,
+                     #                               fileName=file)
+                     # retryDocorator(fileMessage.fileSend())
+                     snedFileT = Thread(target=sendFiles, 
+                                        name='sendFiles', 
+                                        kwargs={'bot':bot,
+                                                'fileDir': splitPath, 
+                                                'fileName': file,
+                                                'logger': logger,
+                                                'chat_id': chat_id,
+                                                'manga': manga
+                                        }
+                                        )  
+                     sendQ.put(snedFileT) 
                except Exception as e:
                   logger.Exception('Raise {0} while sending {1}'.format(e, manga.title))
                   error = e
-            if error != None:
+
+               # snedFileT = Thread(target=sendFiles, 
+               #                    name='sendFiles', 
+               #                    kwargs={'bot':bot,
+               #                    'fileDir': splitPath, 
+               #                    'fileName': file,
+               #                    'logger': logger,
+               #                    "chat_id": chat_id,
+               #              }
+               #      )  
+               # sendQ.put(snedFileT)  
+            else:
                errorMsg = 'Raise {0} while sending {1}'.format(error, manga.title)
                textMessage = telegramMessage(bot=bot, 
                                           chat_id=chat_id, 
                                           messageContent=[errorMsg],
                                           messageType='message')
+               retryDocorator(textMessage.messageSend())
       else:
          pass    
       if manga.dlErrorDict:
@@ -254,7 +308,17 @@ def main():
                                # Ones detects a request and there is no other ongoing requests,
                                # this daemon thread would start the request thread.
    tc.start()
-   logger.info('Download thread containor initiated.')
+   try:
+      sendArchive = config.sendArchive
+   except:
+      sendArchive = False
+   if sendArchive == True:
+      stc = Thread(target=threadContainor, 
+               name='sat', 
+               kwargs={'threadQ': sendQ, 'threadLimit': 2},
+               daemon=True)
+      stc.start()
+   logger.info('trasnfer thread containor initiated.')
    logger.info('Bot started.')
    updater.idle()
 
@@ -266,6 +330,7 @@ logging.getLogger('requests').setLevel(logging.CRITICAL) # Rule out the requests
 threadQ = Queue()  # This queue object put the download function into the thread containor 
                    # Using this thread containor wound also limits the download function thread
                    # to prevent e-h to ban IP.
+sendQ = Queue()
 
 (STATE) = range(1)
 

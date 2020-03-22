@@ -425,7 +425,7 @@ def zipmangadir(url, path, title, removeDir, logger):
       logger.info('Gallery files of {0} has been archived.'.format(url))
    return zipErrorDict
 
-def splitZip(path, title, url, logger):
+def splitZip(path, category, title, url, logger):
    logger.info('Splitting zip archive by outer commons')
    error = None
    try:
@@ -433,11 +433,11 @@ def splitZip(path, title, url, logger):
          fileSize = config.fileSize
       except:
          fileSize = '45m'
-      if os.path.isdir('{0}split_{1}/'.format(path, title)) == True:
-         rmtree('{0}split_{1}/'.format(path, title))
-      subprocess.run(['mkdir', '{0}split_{1}/'.format(path, title), ], stdout=subprocess.DEVNULL)
-      subprocess.run(['zip', '{0}{1}.zip'.format(path, title), 
-                     '--out', '{0}split_{1}/{2}.zip'.format(path, title, title),
+      if os.path.isdir('{0}{1}/split_{2}/'.format(path, category, title)) == True:
+         rmtree('{0}{1}/split_{2}/'.format(path, category, title))
+      subprocess.run(['mkdir', '{0}{1}/split_{2}/'.format(path, category, title)], stdout=subprocess.DEVNULL)
+      subprocess.run(['zip', '{0}{1}/{2}.zip'.format(path, category, title), 
+                     '--out', '{0}{1}/split_{2}/{3}.zip'.format(path, category, title, title),
                      '-s', fileSize],
                      stdout=subprocess.DEVNULL)
    except Exception as e:
