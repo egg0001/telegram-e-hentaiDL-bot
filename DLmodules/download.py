@@ -139,6 +139,7 @@ def mangadownloadctl(mangasession, path, logger, manga, dlopt):
                if mP[0] not in errorPageList:
                   logger.info('Page {0} has been downloaded in previous process, continue.'.format(mP[0]))
                   continue
+            # print('{0}{1}/'.format(dlPath, manga.title))
             threadPoolList.append(executor.submit(fn=mangaPageDownload,
                                                   url=mP[1],
                                                   mangasession=mangasession,
@@ -285,11 +286,16 @@ def mangaPageDownload(url, mangasession, filename, path, logger, q):
             raise htmlPageError('Error 509 - image quote exceeded.')
          downloadUrlsDict = datafilter.mangadlhtmlfilter(htmlContent = htmlContentList[0], url=url)
          imageUrl = downloadUrlsDict['imageUrl']
+ #        print(downloadUrlsDict['reloadUrl'])
       #    print (downloadUrlsDict)
          os.makedirs(path, exist_ok=True)
+         # print('checkPoint0')
          previewimage = mangasession.get(imageUrl, stream=True)
+         # print('checkPoint1')
          if previewimage.status_code == 200:
+            # print('checkPoint2')
             contentTypeList = previewimage.headers['Content-Type'].split('/')
+            # print("{0}{1}.{2}".format(path, filename, contentTypeList[1]))
             with open("{0}{1}.{2}".format(path, filename, contentTypeList[1]), 'wb') as handle:
                for chunk in previewimage.iter_content(chunk_size=4096):
                   handle.write(chunk)
@@ -302,6 +308,7 @@ def mangaPageDownload(url, mangasession, filename, path, logger, q):
       except Exception as error:
          logger.warning('{0} has encounter an error {1}'.format(url, error))
          errorMessage[url].update({err: str(error)})
+         # print(htmlContentList)
          err += 1
          time.sleep(0.5)
       else:

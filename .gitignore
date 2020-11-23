@@ -119,3 +119,6 @@ DLmodules/.cookiesinfo
 htmlcontent
 aria2py.py
 qbt.py
+regexTest.py
+html-content.txt
+html-content2.txt
